@@ -1,0 +1,19 @@
+{
+    "env": {
+      "myDefaultIncludePath": ["${workspaceFolder}", "${workspaceFolder}/include"]
+    },
+    "configurations": [
+      {
+        "name": "cpp20",
+        "cStandard": "c11",
+        "cppStandard": "c++20",
+        "browse": {
+          "path": ["${workspaceFolder}"],
+          "limitSymbolsToIncludedHeaders": true,
+          "databaseFilename": ""
+        }
+      }
+    ],
+    "version": 4
+  }
+  
