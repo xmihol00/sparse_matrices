@@ -12,6 +12,12 @@ Base::Base(uint32_t rows, uint32_t columns, DimenstionMajorityEnum dimMajority) 
     _size = rows * columns * sizeof(float);
 }
 
+Base::~Base()
+{
+    delete[] _byteMatrix;
+    _byteMatrix = nullptr;
+}
+
 void Base::printRow(uint32_t rowIndex, uint8_t precision)
 {
     (void)precision;

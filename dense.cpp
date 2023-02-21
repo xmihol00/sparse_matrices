@@ -16,7 +16,7 @@ Dense::Dense(string fileName, DimenstionMajorityEnum dimMajority) : Base(dimMajo
     }
     else if (fileName.ends_with(".bms"))
     {
-        loadBMS(fileName);
+        loadBinary(fileName);
     }
     else
     {
@@ -32,11 +32,6 @@ Dense::Dense(uint32_t rows, uint32_t columns, DimenstionMajorityEnum dimMajority
     {
         memcpy(_byteMatrix, data, _size);
     }
-}
-
-Dense::~Dense()
-{
-    delete[] _byteMatrix;
 }
 
 void Dense::loadCSV(string fileName)
@@ -87,7 +82,7 @@ void Dense::loadCSV(string fileName)
     }
 }
 
-void Dense::loadBMS(std::string fileName)
+void Dense::loadBinary(std::string fileName)
 {
 
 }
@@ -139,7 +134,7 @@ void Dense::printColumn(uint32_t columnIndex, uint8_t precision)
     }
 }
 
-void Dense::saveAsBMS(std::string fileName)
+void Dense::saveAsBinary(std::string fileName)
 {
 
 }
