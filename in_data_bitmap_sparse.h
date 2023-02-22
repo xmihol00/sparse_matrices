@@ -19,8 +19,8 @@ namespace Matrix
             
             void loadBinary(std::string fileName) override;
 
-            void moveToRow(uint32_t rowIndex);
-            void moveToColumn(uint32_t columnIndex);
+            void moveToRow(uint16_t rowIndex);
+            void moveToColumn(uint16_t columnIndex);
             std::tuple<uint32_t, float *> nextRowBlock();
             std::tuple<uint32_t, float *> nextColumnBlock();
 
@@ -28,15 +28,15 @@ namespace Matrix
             InDataBitmapSparse(std::string fileName, DimenstionMajorityEnum dimMajority = FILE_DETERMINED);
             ~InDataBitmapSparse() = default;
 
-            void printRow(uint32_t rowIndex, uint8_t precision = 7) override;
-            void printColumn(uint32_t columnIndex, uint8_t precision = 7) override;
+            void printRow(uint16_t rowIndex, uint8_t precision = 7) override;
+            void printColumn(uint16_t columnIndex, uint8_t precision = 7) override;
 
             void saveAsBinary(std::string fileName) override;
             void saveAsCSV(std::string fileName) override;
 
-            void dot(InDataBitmapSparse &matrix, Dense &targetMatrix);
+            void dot(InDataBitmapSparse &operandMatrix, Dense &targetMatrix);
             Dense dot(InDataBitmapSparse &matrix);
-            void dot(Dense &matrix, Dense &targetMatrix);
+            void dot(Dense &operandMatrix, Dense &targetMatrix);
             Dense dot(Dense &matrix);
     };
 }

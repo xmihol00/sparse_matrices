@@ -13,8 +13,10 @@ int main()
     //Dense denseMat = rowMat.dot(colMat);
     //denseMat.printMatrix(2);
 
-    BlockSparse rowMat = BlockSparse("square_0.5_saparse.csv", 3, ROW_MAJOR);
-    rowMat.printMatrix();
+    BlockSparse rowMat = BlockSparse("square_0.5_saparse.csv", 4, ROW_MAJOR);
+    Dense colMat = Dense("square_0.5_saparse.csv", COLUMN_MAJOR);
+    Dense denseMat = rowMat.dot(colMat);
+    denseMat.printMatrix(2);
 
     return 0;
 }

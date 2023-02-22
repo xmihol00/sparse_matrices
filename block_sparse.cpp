@@ -66,7 +66,7 @@ void BlockSparse::allocateSpaceRowMajorCSV(std::ifstream &file)
 
 void BlockSparse::allocateSpaceColumnMajorCSV(std::ifstream &file)
 {
-
+    (void)file;
 }
 
 void BlockSparse::loadDataRowMajorCSV(std::ifstream &file)
@@ -84,21 +84,31 @@ void BlockSparse::loadDataRowMajorCSV(std::ifstream &file)
 
     string row;
     string cell;
-
+    uint32_t line = 0;
     while (getline(file, row))
     {
+        line++;
         float cellValue;
         stringstream rowStream(row);
         uint16_t blockOffset = 0;
 
         for (uint16_t i = 0; i < _blocksPerDimension; i++)
         {
-            for (; getline(rowStream, cell, ',') && (cellValue = stof(cell)) == 0; blockOffset++); // loop without body
-            _uint16Matrix[blockIndex++] = blockOffset;
-            _dataMatrix[dataIndex++] = cellValue;
+            bool read;
+            for (; (read = static_cast<bool>(getline(rowStream, cell, ','))) && (cellValue = stof(cell)) == 0; blockOffset++); // loop without body
+            if (read)
+            {
+                _uint16Matrix[blockIndex++] = blockOffset;
+                _dataMatrix[dataIndex++] = cellValue;
+            }
+            else
+            {
+                _uint16Matrix[blockIndex++] = --blockOffset;
+                _dataMatrix[dataIndex++] = 0.0f;
+            }
 
-            uint16_t k = 1;
-            for (uint8_t j = 1; j < _entriesPerBlock && k <= UINT8_MAX; k++)
+            uint16_t k = 0;
+            for (uint8_t j = 1; j < _entriesPerBlock && k < UINT8_MAX; )
             {
                 if (!getline(rowStream, cell, ','))
                 {
@@ -126,6 +136,7 @@ void BlockSparse::loadDataRowMajorCSV(std::ifstream &file)
                     break;
                 }
 
+                k++;
                 cellValue = stof(cell);
                 if (cellValue != 0.0f)
                 {
@@ -135,60 +146,62 @@ void BlockSparse::loadDataRowMajorCSV(std::ifstream &file)
                 }
             }
 
-            if (k > UINT8_MAX)
+            if (k >= UINT8_MAX)
             {
                 throw out_of_range((stringstream() << "Not enough values in a range of block " << blockIndex % _blocksPerDimension << " at row " << blockIndex / _blocksPerDimension << '.').str());
             }
-            blockOffset += k;
+            blockOffset += k + 1;
         }
     }
 }
 
 void BlockSparse::loadDataColumnMajorCSV(std::ifstream &file)
 {
-
+    (void)file;
 }
 
 void BlockSparse::loadBinary(std::string fileName)
 {
-
+    (void)fileName;
 }
 
 void BlockSparse::saveAsBinary(std::string fileName)
 {
-
+    (void)fileName;
 }
 
 void BlockSparse::saveAsCSV(std::string fileName)
 {
-
+    (void)fileName;
 }
 
-void BlockSparse::printColumn(uint32_t columnIndex, uint8_t precision)
+void BlockSparse::printColumn(uint16_t columnIndex, uint8_t precision)
 {
-
+    (void)columnIndex;
+    (void)precision;
 }
 
-void BlockSparse::printRow(uint32_t rowIndex, uint8_t precision)
+void BlockSparse::printRow(uint16_t rowIndex, uint8_t precision)
 {
     Base::printRow(rowIndex);
 
     cout << setprecision(precision) << fixed;
     if (_dimMajority == ROW_MAJOR)
     {
-        uint32_t rowOffset = rowIndex * _entriesPerBlock;
         int32_t previousBlockIndex = -1;
         float *offsetDataMatrix = &_dataMatrix[rowIndex * _entriesPerDimension];
         uint16_t dataIndex = 0;
 
-        uint32_t columnIndex = 0;
-        for (uint32_t i = _blocksPerDimension * rowIndex; i < _blocksPerDimension + _blocksPerDimension * rowIndex; i++)
+        uint16_t columnIndex = 0;
+        uint32_t upperBound = _blocksPerDimension + _blocksPerDimension * rowIndex;
+        for (uint32_t i = _blocksPerDimension * rowIndex; i < upperBound; i++)
         {
             int32_t blockIndex = _uint16Matrix[i];
             int32_t blockOffset = blockIndex;
-            for (uint32_t j = i * (_entriesPerBlock - 1); j < i * (_entriesPerBlock - 1) + _entriesPerBlock; j++)
+            uint32_t upperBound = static_cast<uint32_t>(i * (_entriesPerBlock - 1) + _entriesPerBlock);
+            for (uint32_t j = i * (_entriesPerBlock - 1); j < upperBound; j++)
             {
-                for (int16_t k = 1; k < blockIndex - previousBlockIndex; k++)
+                for (int16_t k = 1; k < blockIndex - previousBlockIndex && columnIndex < _columns; k++)
                 {
                     cout << 0.0f;
                     if (++columnIndex < _columns)
@@ -201,24 +214,29 @@ void BlockSparse::printRow(uint32_t rowIndex, uint8_t precision)
                     }
                 }
 
-                if (offsetDataMatrix[dataIndex])
+                if (offsetDataMatrix[dataIndex] && columnIndex < _columns)
                 {
                     cout << offsetDataMatrix[dataIndex];
                     if (++columnIndex < _columns)
                     {
                         cout << ',';
                     }
+                    else
+                    {
+                        break;
+                    }
                 }
                 dataIndex++;
 
                 previousBlockIndex = blockIndex;
                 blockIndex = _entriesOffsets[j] + blockOffset;
+                //cout << previousBlockIndex << " " << blockIndex << endl;
             }
         }
 
         if (columnIndex < _columns)
         {
-            for (; columnIndex < _columns - 1; columnIndex++)
+            for (columnIndex++; columnIndex < _columns; columnIndex++)
             {
                 cout << 0.0f << ',';
             }
@@ -235,4 +253,46 @@ void BlockSparse::printRow(uint32_t rowIndex, uint8_t precision)
     {
         throw invalid_argument(_UNSUPPORTED_MAJORITY);
     }
+}
+
+void BlockSparse::dotRowColumnBlock(uint16_t columnIndex, uint32_t blockIndex, Dense &operandMatrix, Dense &targetMatrix)
+{
+    uint16_t rowIndex = blockIndex / _blocksPerDimension;
+    float *blockData = &_dataMatrix[blockIndex * _entriesPerBlock];
+    float *columnData = &operandMatrix._floatMatrix[columnIndex * operandMatrix._rows + _uint16Matrix[blockIndex]];
+    uint8_t *entriesOffsets = &_entriesOffsets[blockIndex * (_entriesPerBlock - 1)];
+    float accumulator = 0;
+
+    for (uint8_t i = 0, j = 0; i < _entriesPerBlock; j = entriesOffsets[i++])
+    {
+        accumulator += blockData[i] * columnData[j];
+        //cout << blockData[i] << " " << columnData[j] << " " << j + _uint16Matrix[blockIndex] << endl;
+    }
+
+    targetMatrix._floatMatrix[columnIndex * _rows + rowIndex] += accumulator;
+}
+
+void BlockSparse::dot(Dense &operandMatrix, Dense &targetMatrix)
+{
+    if (_dimMajority == ROW_MAJOR)
+    {
+        if (operandMatrix._dimMajority == COLUMN_MAJOR)
+        {
+            for (uint32_t i = 0; i < operandMatrix._columns; i++)
+            {
+                for (uint32_t j = 0; j < _blocksPerDimension * _rows; j++)
+                {
+                    dotRowColumnBlock(i, j, operandMatrix, targetMatrix);
+                }
+            }
+        }
+    }
+}
+
+Dense BlockSparse::dot(Dense &matrix)
+{
+    Dense targetMatrix(_rows, matrix._columns, COLUMN_MAJOR);
+    dot(matrix, targetMatrix);
+
+    return targetMatrix;
 }

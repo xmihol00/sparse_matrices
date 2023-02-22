@@ -2,6 +2,7 @@
 #define BLOCK_SPARSE_H
 
 #include "sparse.h"
+#include "dense.h"
 
 namespace Matrix
 {
@@ -20,17 +21,22 @@ namespace Matrix
             void loadDataColumnMajorCSV(std::ifstream &file) override;
 
             void loadBinary(std::string fileName) override;
+
+            void dotRowColumnBlock(uint16_t columnIndex, uint32_t blockIndex, Dense &operandMatrix, Dense &targetMatrix);
         
         public:
             BlockSparse() = default;
             BlockSparse(std::string fileName, uint16_t blocksPerDimension, DimenstionMajorityEnum dimMajority = FILE_DETERMINED);
             ~BlockSparse() = default;
 
-            void printColumn(uint32_t columnIndex, uint8_t precision = 7) override;
-            void printRow(uint32_t rowIndex, uint8_t precision = 7) override;
+            void printColumn(uint16_t columnIndex, uint8_t precision = 7) override;
+            void printRow(uint16_t rowIndex, uint8_t precision = 7) override;
 
             virtual void saveAsBinary(std::string fileName) override;
             virtual void saveAsCSV(std::string fileName) override;
+
+            void dot(Dense &matrix, Dense &targetMatrix);
+            Dense dot(Dense &matrix);
     };
 }
 

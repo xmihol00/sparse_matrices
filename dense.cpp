@@ -84,10 +84,10 @@ void Dense::loadCSV(string fileName)
 
 void Dense::loadBinary(std::string fileName)
 {
-
+    (void)fileName;
 }
 
-void Dense::printRow(uint32_t rowIndex, uint8_t precision)
+void Dense::printRow(uint16_t rowIndex, uint8_t precision)
 {
     Base::printRow(rowIndex);
 
@@ -95,7 +95,7 @@ void Dense::printRow(uint32_t rowIndex, uint8_t precision)
     if (_dimMajority == ROW_MAJOR)
     {
         float *offsetMatrix = &_floatMatrix[_columns * rowIndex];
-        for (uint32_t i = 0; i < _columns - 1; i++)
+        for (int32_t i = 0; i < _columns - 1; i++)
         {
             cout << offsetMatrix[i] << ',';
         }
@@ -103,8 +103,9 @@ void Dense::printRow(uint32_t rowIndex, uint8_t precision)
     }
     else if (_dimMajority == COLUMN_MAJOR)
     {
-        uint32_t i = rowIndex;
-        for (; i < (_rows - 1) * _columns; i += _rows)
+        int32_t i = rowIndex;
+        int32_t upperBound = (_rows - 1) * _columns;
+        for (; i < upperBound; i += _rows)
         {
             cout << _floatMatrix[i] << ',';
         }
@@ -112,7 +113,7 @@ void Dense::printRow(uint32_t rowIndex, uint8_t precision)
     }
 }
 
-void Dense::printColumn(uint32_t columnIndex, uint8_t precision)
+void Dense::printColumn(uint16_t columnIndex, uint8_t precision)
 {
     Base::printColumn(columnIndex);
 
@@ -136,11 +137,11 @@ void Dense::printColumn(uint32_t columnIndex, uint8_t precision)
 
 void Dense::saveAsBinary(std::string fileName)
 {
-
+    (void)fileName;
 }
 
 void Dense::saveAsCSV(std::string fileName)
 {
-
+    (void)fileName;
 }
 

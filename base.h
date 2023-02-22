@@ -35,9 +35,9 @@ namespace Matrix
                 std::byte *_byteMatrix;
             };
             
-            uint32_t _size = 0;
-            uint32_t _rows = 0;
-            uint32_t _columns = 0;
+            uint64_t _size = 0;
+            uint16_t _rows = 0;
+            uint16_t _columns = 0;
             DimenstionMajorityEnum _dimMajority = FILE_DETERMINED;
 
             uint32_t _blockIndex = 0;
@@ -48,11 +48,11 @@ namespace Matrix
         public:
             Base() = default;
             Base(DimenstionMajorityEnum dimMajority);
-            Base(uint32_t rows, uint32_t columns, DimenstionMajorityEnum dimMajority);
+            Base(uint16_t rows, uint16_t columns, DimenstionMajorityEnum dimMajority);
             ~Base();
 
-            virtual void printRow(uint32_t rowIndex, uint8_t precision = 7);
-            virtual void printColumn(uint32_t columnIndex, uint8_t precision = 7);
+            virtual void printRow(uint16_t rowIndex, uint8_t precision = 7);
+            virtual void printColumn(uint16_t columnIndex, uint8_t precision = 7);
             virtual void printMatrix(uint8_t precision = 7);
 
             virtual void saveAsBinary(std::string fileName) = 0;

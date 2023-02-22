@@ -91,7 +91,7 @@ void InDataBitmapSparse::allocateSpaceColumnMajorCSV(ifstream &file)
 
 void InDataBitmapSparse::loadDataRowMajorCSV(ifstream &file)
 {
-    uint32_t rowIndex = 0;
+    uint16_t rowIndex = 0;
     uint32_t dataIndex = _rows;
     uint32_t blockIndex = dataIndex;
     uint8_t blockPosition = 0;
@@ -138,7 +138,7 @@ void InDataBitmapSparse::loadDataColumnMajorCSV(ifstream &file)
         _buffer[i] = _uint32Matrix[i];
     }
 
-    uint32_t columnIndex = 0;
+    uint16_t columnIndex = 0;
     uint8_t blockPosition = 0;
     string row;
     string cell;
@@ -175,7 +175,7 @@ void InDataBitmapSparse::loadDataColumnMajorCSV(ifstream &file)
     _buffer = nullptr;
 }
 
-void InDataBitmapSparse::printRow(uint32_t rowIndex, uint8_t precision)
+void InDataBitmapSparse::printRow(uint16_t rowIndex, uint8_t precision)
 {
     Base::printRow(rowIndex);
 
@@ -222,7 +222,7 @@ void InDataBitmapSparse::printRow(uint32_t rowIndex, uint8_t precision)
 
         for (uint32_t i = 0; ; )
         {
-            uint32_t columnIndex = _uint32Matrix[i];
+            uint16_t columnIndex = _uint32Matrix[i];
             for (uint32_t j = 0; j < blockNumber; j++)
             {
                 columnIndex += popcount(_uint32Matrix[columnIndex]) + 1;
@@ -255,7 +255,7 @@ void InDataBitmapSparse::printRow(uint32_t rowIndex, uint8_t precision)
     }
 }
 
-void InDataBitmapSparse::printColumn(uint32_t columnIndex, uint8_t precision)
+void InDataBitmapSparse::printColumn(uint16_t columnIndex, uint8_t precision)
 {
     Base::printColumn(columnIndex);
 
@@ -297,7 +297,7 @@ void InDataBitmapSparse::printColumn(uint32_t columnIndex, uint8_t precision)
 
         for (uint32_t i = 0; i < _rows; i++)
         {
-            uint32_t rowIndex = _uint32Matrix[i];
+            uint16_t rowIndex = _uint32Matrix[i];
             for (uint32_t j = 0; j < blockNumber; j++)
             {
                 rowIndex += popcount(_uint32Matrix[rowIndex]) + 1;
@@ -325,13 +325,13 @@ void InDataBitmapSparse::loadBinary(std::string fileName)
     ifstream file(fileName, ios_base::binary);
     if (file.is_open())
     {
-        file.read(reinterpret_cast<char *>(&_size), sizeof(uint32_t));
-        file.read(reinterpret_cast<char *>(&_rows), sizeof(uint32_t));
-        file.read(reinterpret_cast<char *>(&_columns), sizeof(uint32_t));
-        file.read(reinterpret_cast<char *>(&_blocksPerDimension), sizeof(uint32_t));
+        file.read(reinterpret_cast<char *>(&_size), sizeof(_size));
+        file.read(reinterpret_cast<char *>(&_rows), sizeof(_rows));
+        file.read(reinterpret_cast<char *>(&_columns), sizeof(_columns));
+        file.read(reinterpret_cast<char *>(&_blocksPerDimension), sizeof(_blocksPerDimension));
 
         DimenstionMajorityEnum dimMajority;
-        file.read(reinterpret_cast<char *>(&dimMajority), sizeof(DimenstionMajorityEnum));
+        file.read(reinterpret_cast<char *>(&dimMajority), sizeof(dimMajority));
         if (_dimMajority != FILE_DETERMINED && _dimMajority != dimMajority)
         {
             throw invalid_argument("Specified dimension majority and stored dimension majority do not match.");
@@ -347,7 +347,7 @@ void InDataBitmapSparse::loadBinary(std::string fileName)
 
 void InDataBitmapSparse::saveAsCSV(std::string fileName)
 {
-
+    (void)fileName;
 }
 
 void InDataBitmapSparse::saveAsBinary(string fileName)
@@ -355,18 +355,18 @@ void InDataBitmapSparse::saveAsBinary(string fileName)
     ofstream file(fileName, ios_base::binary);
     if (file.is_open())
     {
-        file.write(reinterpret_cast<char *>(&_size), sizeof(uint32_t));
-        file.write(reinterpret_cast<char *>(&_rows), sizeof(uint32_t));
-        file.write(reinterpret_cast<char *>(&_columns), sizeof(uint32_t));
-        file.write(reinterpret_cast<char *>(&_blocksPerDimension), sizeof(uint32_t));
-        file.write(reinterpret_cast<char *>(&_dimMajority), sizeof(DimenstionMajorityEnum));
+        file.write(reinterpret_cast<char *>(&_size), sizeof(_size));
+        file.write(reinterpret_cast<char *>(&_rows), sizeof(_rows));
+        file.write(reinterpret_cast<char *>(&_columns), sizeof(_columns));
+        file.write(reinterpret_cast<char *>(&_blocksPerDimension), sizeof(_blocksPerDimension));
+        file.write(reinterpret_cast<char *>(&_dimMajority), sizeof(_dimMajority));
         file.write(_charMatrix, _size);
     }
 
     file.close();
 }
 
-void InDataBitmapSparse::moveToRow(uint32_t rowIndex)
+void InDataBitmapSparse::moveToRow(uint16_t rowIndex)
 {
     if (_dimMajority == ROW_MAJOR)
     {
@@ -374,7 +374,7 @@ void InDataBitmapSparse::moveToRow(uint32_t rowIndex)
     }
 }
 
-void InDataBitmapSparse::moveToColumn(uint32_t columnIndex)
+void InDataBitmapSparse::moveToColumn(uint16_t columnIndex)
 {
     if (_dimMajority == COLUMN_MAJOR)
     {
@@ -455,20 +455,20 @@ Dense InDataBitmapSparse::dot(InDataBitmapSparse &matrix)
     return targetMatrix;
 }
 
-void InDataBitmapSparse::dot(Dense &matrix, Dense &targetMatrix)
+void InDataBitmapSparse::dot(Dense &operandMatrix, Dense &targetMatrix)
 {
     if (_dimMajority == ROW_MAJOR)
     {
-        if (matrix._dimMajority == ROW_MAJOR)
+        if (operandMatrix._dimMajority == ROW_MAJOR)
         {
             for (uint32_t i = 0; i < _rows; i++)
             {
-                uint32_t targetOffset = i * matrix._columns;
-                for (uint32_t j = 0; j < matrix._columns; j++)
+                uint32_t targetOffset = i * operandMatrix._columns;
+                for (uint32_t j = 0; j < operandMatrix._columns; j++)
                 {
                     moveToRow(i);
                     float accumulator = 0;
-                    uint32_t rowIndex = 0;
+                    uint16_t rowIndex = 0;
                     
                     for (uint32_t k = 0; k < _blocksPerDimension; k++)
                     {
@@ -477,7 +477,7 @@ void InDataBitmapSparse::dot(Dense &matrix, Dense &targetMatrix)
                         for (uint8_t l = countr_zero(rowBlock), m = 1; l < _BLOCK_SIZE; 
                                 l = countr_zero(rowBlock & (_UINT32_MASK_MAX << l)), m++)
                         {
-                            accumulator += rowData[m] * matrix._floatMatrix[(rowIndex + l) * matrix._columns + j];
+                            accumulator += rowData[m] * operandMatrix._floatMatrix[(rowIndex + l) * operandMatrix._columns + j];
                         }
                         rowIndex += _BLOCK_SIZE;
                     }
@@ -485,17 +485,17 @@ void InDataBitmapSparse::dot(Dense &matrix, Dense &targetMatrix)
                 }
             }
         }
-        else if (matrix._dimMajority == COLUMN_MAJOR)
+        else if (operandMatrix._dimMajority == COLUMN_MAJOR)
         {
             for (uint32_t i = 0; i < _rows; i++)
             {
-                uint32_t targetOffset = i * matrix._columns;
-                for (uint32_t j = 0; j < matrix._columns; j++)
+                uint32_t targetOffset = i * operandMatrix._columns;
+                for (uint32_t j = 0; j < operandMatrix._columns; j++)
                 {
                     moveToRow(i);
                     float accumulator = 0;
-                    uint32_t columnIndex = 0;
-                    uint32_t matrixOffset = j * matrix._rows;
+                    uint16_t columnIndex = 0;
+                    uint32_t matrixOffset = j * operandMatrix._rows;
 
                     for (uint32_t k = 0; k < _blocksPerDimension; k++)
                     {
@@ -504,7 +504,7 @@ void InDataBitmapSparse::dot(Dense &matrix, Dense &targetMatrix)
                         for (uint8_t l = countr_zero(rowBlock), m = 1; l < _BLOCK_SIZE; 
                                 l = countr_zero(rowBlock & (_UINT32_MASK_MAX << l)), m++)
                         {
-                            accumulator += rowData[m] * matrix._floatMatrix[matrixOffset + columnIndex + l];
+                            accumulator += rowData[m] * operandMatrix._floatMatrix[matrixOffset + columnIndex + l];
                         }
                         columnIndex += _BLOCK_SIZE;
                     }

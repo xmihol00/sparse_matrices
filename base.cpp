@@ -6,7 +6,7 @@ using namespace Matrix;
 
 Base::Base(DimenstionMajorityEnum dimMajority) : _dimMajority{dimMajority} { }
 
-Base::Base(uint32_t rows, uint32_t columns, DimenstionMajorityEnum dimMajority) : 
+Base::Base(uint16_t rows, uint16_t columns, DimenstionMajorityEnum dimMajority) : 
     _rows{rows}, _columns{columns}, _dimMajority{dimMajority} 
 {
     _size = rows * columns * sizeof(float);
@@ -18,7 +18,7 @@ Base::~Base()
     _byteMatrix = nullptr;
 }
 
-void Base::printRow(uint32_t rowIndex, uint8_t precision)
+void Base::printRow(uint16_t rowIndex, uint8_t precision)
 {
     (void)precision;
 
@@ -28,7 +28,7 @@ void Base::printRow(uint32_t rowIndex, uint8_t precision)
     }
 }
 
-void Base::printColumn(uint32_t columnIndex, uint8_t precision)
+void Base::printColumn(uint16_t columnIndex, uint8_t precision)
 {
     (void)precision;
 
