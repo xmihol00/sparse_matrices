@@ -1,0 +1,4 @@
+#ifndef BLOCK_SPARSE_CUDA_PRIV_H
+#define BLOCK_SPARSE_CUDA_PRIV_H
+
+#endif

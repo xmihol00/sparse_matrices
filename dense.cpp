@@ -1,4 +1,5 @@
 #include "dense.h"
+#include "dense_cuda.h"
 
 using namespace std;
 using namespace Matrix;
@@ -144,4 +145,18 @@ void Dense::saveAsCSV(std::string fileName)
 {
     (void)fileName;
 }
+
+void Dense::dotGPU(Dense &matrix, Dense &targetMatrix)
+{
+    dotRowsColumns(_floatMatrix, matrix._floatMatrix, targetMatrix._floatMatrix, _rows, matrix._columns, _size, matrix._size);
+}
+
+Dense Dense::dotGPU(Dense &matrix)
+{
+    Dense targetMatrix(_rows, matrix._columns, COLUMN_MAJOR);
+    dotGPU(matrix, targetMatrix);
+
+    return targetMatrix;
+}
+
 
