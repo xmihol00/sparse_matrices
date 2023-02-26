@@ -26,8 +26,11 @@ namespace Matrix
             virtual void saveAsBinary(std::string fileName) override;
             virtual void saveAsCSV(std::string fileName) override;
 
-            void dotGPU(Dense &matrix, Dense &targetMatrix);
-            Dense dotGPU(Dense &matrix);
+            void dot(Dense &operandMatrix, Dense &targetMatrix);
+            Dense dot(Dense &operandMatrix);
+
+            void dotGPU(Dense &operandMatrix, Dense &targetMatrix);
+            Dense dotGPU(Dense &operandMatrix);
     };
 }
 

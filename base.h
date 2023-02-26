@@ -40,8 +40,6 @@ namespace Matrix
             uint16_t _columns = 0;
             DimenstionMajorityEnum _dimMajority = FILE_DETERMINED;
 
-            uint32_t _blockIndex = 0;
-
             virtual void loadCSV(std::string fileName) = 0;
             virtual void loadBinary(std::string fileName) = 0;
 
@@ -51,6 +49,7 @@ namespace Matrix
             Base(uint16_t rows, uint16_t columns, DimenstionMajorityEnum dimMajority);
             ~Base();
 
+            void printSize();
             virtual void printRow(uint16_t rowIndex, uint8_t precision = 7);
             virtual void printColumn(uint16_t columnIndex, uint8_t precision = 7);
             virtual void printMatrix(uint8_t precision = 7);

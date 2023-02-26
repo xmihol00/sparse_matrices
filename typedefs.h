@@ -1,19 +1,17 @@
 #ifndef TYPEDEFS_H
 #define TYPEDEFS_H
 
-#include <cstddef>
 #include <string>
 
 namespace Matrix
 {
     typedef union
     {
-        float *floatMatrix = nullptr;
-        uint32_t *uint32Matrix;
-        uint16_t *uint16Matrix;
-        uint8_t *uint8Matrix;
-        char *charMatrix;
-        std::byte *byteMatrix;
+        float *floats = nullptr;
+        uint32_t *uint32s;
+        uint16_t *uint16s;
+        uint8_t *uint8s;
+        char *chars;
     } matrix_ptrs_t;
 }
 

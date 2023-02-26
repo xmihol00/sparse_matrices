@@ -8,15 +8,15 @@ using namespace Matrix;
 
 int main()
 {   
-    //InDataBitmapSparse rowMat = InDataBitmapSparse("square_0.5_saparse.csv", ROW_MAJOR);
-    //Dense colMat = Dense("square_0.5_saparse.csv", COLUMN_MAJOR);
-    //Dense denseMat = rowMat.dot(colMat);
-    //denseMat.printMatrix(2);
-    //BlockSparse rowMat = BlockSparse("square_0.5_saparse.csv", 4, ROW_MAJOR);
-    Dense rowMat = Dense("square_0.5_saparse.csv", ROW_MAJOR);
-    Dense colMat = Dense("square_0.5_saparse.csv", COLUMN_MAJOR);
+    //InDataBitmapSparse rowMat = InDataBitmapSparse("0.5_saparse.csv", ROW_MAJOR);
+    BlockSparse rowMat = BlockSparse("0.5_saparse.csv", 32, ROW_MAJOR);
+    //Dense rowMat = Dense("0.5_saparse.csv", ROW_MAJOR);
+    Dense colMat = Dense("0.5_saparse.csv", COLUMN_MAJOR);
     Dense denseMat = rowMat.dotGPU(colMat);
-    denseMat.printMatrix(2);
+    denseMat.printMatrix(1);
+
+    //rowMat.printSize();
+    //colMat.printSize();
 
     return 0;
 }

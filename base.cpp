@@ -18,6 +18,11 @@ Base::~Base()
     _byteMatrix = nullptr;
 }
 
+void Base::printSize()
+{
+    cout << "size: " << _size << " B" << endl;
+}
+
 void Base::printRow(uint16_t rowIndex, uint8_t precision)
 {
     (void)precision;

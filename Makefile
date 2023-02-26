@@ -1,7 +1,7 @@
 CC = g++-11
 NVCC = nvcc
-CFLAGS = -std=c++20 -Wall -Wextra -MMD
-NVCCLAGS = -MMD
+CFLAGS = -std=c++20 -Wall -Wextra -MMD -O3
+NVCCLAGS = --std=c++11 -MMD -O3 
 LDFLAGS = -L/usr/local/cuda-10.2/lib64/ -lcuda -lcudart
 BUILD_DIR = ./build
 CPP_BUILD_DIR = cpp
@@ -30,12 +30,12 @@ $(EXE): $(DIR_CPP_OBJ) $(DIR_CUDA_OBJ)
 $(BUILD_DIR)/$(CPP_BUILD_DIR)/%.o: %.cpp
 	@mkdir -p $(BUILD_DIR)
 	@mkdir -p $(BUILD_DIR)/$(CPP_BUILD_DIR)
-	$(CC) $< $(CFLAGS) -g -c -o $@
+	$(CC) $< $(CFLAGS) -c -o $@
 
 $(BUILD_DIR)/$(CUDA_BUILD_DIR)/%.o: %.cu
 	@mkdir -p $(BUILD_DIR)
 	@mkdir -p $(BUILD_DIR)/$(CUDA_BUILD_DIR)
-	$(NVCC) $< $(NVCCLAGS) -g -c -o $@
+	$(NVCC) $< $(NVCCLAGS) -c -o $@
 
 clean:
 	@rm -r $(EXE) $(BUILD_DIR)

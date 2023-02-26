@@ -12,7 +12,7 @@ namespace Matrix
             uint8_t _entriesPerBlock;
             uint16_t _entriesPerDimension;
 
-            uint8_t *_entriesOffsets;
+            uint8_t *_entryIndices;
             float *_dataMatrix;
 
             void allocateSpaceRowMajorCSV(std::ifstream &file) override;
@@ -35,8 +35,11 @@ namespace Matrix
             virtual void saveAsBinary(std::string fileName) override;
             virtual void saveAsCSV(std::string fileName) override;
 
-            void dot(Dense &matrix, Dense &targetMatrix);
-            Dense dot(Dense &matrix);
+            void dot(Dense &operandMatrix, Dense &targetMatrix);
+            Dense dot(Dense &operandMatrix);
+
+            void dotGPU(Dense &operandMatrix, Dense &targetMatrix);
+            Dense dotGPU(Dense &operandMatrix);
     };
 }
 

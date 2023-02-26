@@ -61,7 +61,7 @@ void InDataBitmapSparse::allocateSpaceColumnMajorCSV(ifstream &file)
     string cell;
     
     getline(file, row);
-    _columns = count(row.begin(), row.end(), ',');
+    _columns = count(row.begin(), row.end(), ',') + 1;
     file.clear();
     file.seekg(0);
 
@@ -95,20 +95,23 @@ void InDataBitmapSparse::loadDataRowMajorCSV(ifstream &file)
     uint32_t dataIndex = _rows;
     uint32_t blockIndex = dataIndex;
     uint8_t blockPosition = 0;
+    bool indexMoved = false;
     string row;
     string cell;
 
     while (getline(file, row))
     {
-        _uint32Matrix[rowIndex] = dataIndex;
-        rowIndex++;
         blockPosition = 0;
-        blockIndex = dataIndex;
-        dataIndex++;
+        if (!indexMoved)
+        {
+            blockIndex = dataIndex++;
+        }
+        _uint32Matrix[rowIndex++] = dataIndex - 1;
 
         stringstream rowStream(row);
         while (getline(rowStream, cell, ','))
         {
+            indexMoved = false;
             float cellValue = stof(cell);
             if (cellValue != 0.0f)
             {
@@ -123,6 +126,7 @@ void InDataBitmapSparse::loadDataRowMajorCSV(ifstream &file)
                 blockPosition = 0;
                 blockIndex = dataIndex;
                 dataIndex++;
+                indexMoved = true;
             }
         }
     }
@@ -184,7 +188,7 @@ void InDataBitmapSparse::printRow(uint16_t rowIndex, uint8_t precision)
     {
         uint32_t blockIndex = _uint32Matrix[rowIndex];
         uint32_t dataIndex = blockIndex;
-        uint32_t columnCounter = 0;
+        uint16_t columnCounter = 0;
 
         for (uint32_t i = 0; i < _blocksPerDimension; i++)
         {
@@ -216,14 +220,14 @@ void InDataBitmapSparse::printRow(uint16_t rowIndex, uint8_t precision)
     }
     else if (_dimMajority == COLUMN_MAJOR)
     {
-        uint32_t blockNumber = rowIndex / _BLOCK_SIZE;
-        uint32_t maskedIndex = rowIndex & (_BLOCK_SIZE - 1);
+        uint16_t blockNumber = rowIndex / _BLOCK_SIZE;
+        uint16_t maskedIndex = rowIndex & (_BLOCK_SIZE - 1);
         uint32_t targetBlockMask = ~(_UINT32_MASK_MAX << maskedIndex);
 
-        for (uint32_t i = 0; ; )
+        for (uint16_t i = 0; ; )
         {
-            uint16_t columnIndex = _uint32Matrix[i];
-            for (uint32_t j = 0; j < blockNumber; j++)
+            uint32_t columnIndex = _uint32Matrix[i];
+            for (uint16_t j = 0; j < blockNumber; j++)
             {
                 columnIndex += popcount(_uint32Matrix[columnIndex]) + 1;
             }
@@ -410,24 +414,24 @@ std::tuple<uint32_t, float *> InDataBitmapSparse::nextColumnBlock()
     return {0, nullptr};
 }
 
-void InDataBitmapSparse::dot(InDataBitmapSparse &matrix, Dense &targetMatrix)
+void InDataBitmapSparse::dot(InDataBitmapSparse &operandMatrix, Dense &targetMatrix)
 {
-    if (_columns != matrix._rows)
+    if (_columns != operandMatrix._rows)
     {
-        throw invalid_argument((stringstream() << "Dimension missmatch. The number of columns (" << _columns << ") does not match the number of rows (" << matrix._rows << ").").str());
+        throw invalid_argument((stringstream() << "Dimension missmatch. The number of columns (" << _columns << ") does not match the number of rows (" << operandMatrix._rows << ").").str());
     }
 
     for (uint32_t i = 0; i < _rows; i++)
     {
-        matrix.moveToColumn(0);
-        for (uint32_t j = 0; j < matrix._columns; j++)
+        operandMatrix.moveToColumn(0);
+        for (uint32_t j = 0; j < operandMatrix._columns; j++)
         {
             moveToRow(i);
             float accumulator = 0;
             for (uint32_t k = 0; k < _blocksPerDimension; k++)
             {
                 auto [rowBlock, rowData] = nextRowBlock();
-                auto [columnBlock, columnData] = matrix.nextColumnBlock();
+                auto [columnBlock, columnData] = operandMatrix.nextColumnBlock();
 
                 uint32_t matchedBlock = rowBlock & columnBlock;
                 // with HW support countr_zero() and popcount() should be executed with a single instruction, i.e one CPU cycle
@@ -440,17 +444,17 @@ void InDataBitmapSparse::dot(InDataBitmapSparse &matrix, Dense &targetMatrix)
                     accumulator += rowData[rowDataOffset] * columnData[columnDataOffset];
                 }
             }
-            targetMatrix._floatMatrix[i * matrix._columns +  j] = accumulator;
+            targetMatrix._floatMatrix[i * operandMatrix._columns +  j] = accumulator;
         }
     }
 
     targetMatrix._dimMajority = ROW_MAJOR;
 }
 
-Dense InDataBitmapSparse::dot(InDataBitmapSparse &matrix)
+Dense InDataBitmapSparse::dot(InDataBitmapSparse &operandMatrix)
 {
-    Dense targetMatrix(_rows, matrix._columns, ROW_MAJOR);
-    dot(matrix, targetMatrix);
+    Dense targetMatrix(_rows, operandMatrix._columns, ROW_MAJOR);
+    dot(operandMatrix, targetMatrix);
 
     return targetMatrix;
 }
@@ -461,23 +465,21 @@ void InDataBitmapSparse::dot(Dense &operandMatrix, Dense &targetMatrix)
     {
         if (operandMatrix._dimMajority == ROW_MAJOR)
         {
-            for (uint32_t i = 0; i < _rows; i++)
+            for (uint32_t i = 0; i < operandMatrix._columns; i++)
             {
-                uint32_t targetOffset = i * operandMatrix._columns;
-                for (uint32_t j = 0; j < operandMatrix._columns; j++)
+                moveToRow(0);
+                uint32_t targetOffset = i * _rows;
+                for (uint32_t j = 0; j < _rows; j++)
                 {
-                    moveToRow(i);
                     float accumulator = 0;
-                    uint16_t rowIndex = 0;
-                    
+                    uint16_t rowIndex = 0;    
                     for (uint32_t k = 0; k < _blocksPerDimension; k++)
                     {
                         auto [rowBlock, rowData] = nextRowBlock();    
-                        
                         for (uint8_t l = countr_zero(rowBlock), m = 1; l < _BLOCK_SIZE; 
                                 l = countr_zero(rowBlock & (_UINT32_MASK_MAX << l)), m++)
                         {
-                            accumulator += rowData[m] * operandMatrix._floatMatrix[(rowIndex + l) * operandMatrix._columns + j];
+                            accumulator += rowData[m] * operandMatrix._floatMatrix[(rowIndex + l) * operandMatrix._columns + i];
                         }
                         rowIndex += _BLOCK_SIZE;
                     }
@@ -487,24 +489,22 @@ void InDataBitmapSparse::dot(Dense &operandMatrix, Dense &targetMatrix)
         }
         else if (operandMatrix._dimMajority == COLUMN_MAJOR)
         {
-            for (uint32_t i = 0; i < _rows; i++)
+            for (uint32_t i = 0; i < operandMatrix._columns; i++)
             {
-                uint32_t targetOffset = i * operandMatrix._columns;
-                for (uint32_t j = 0; j < operandMatrix._columns; j++)
+                moveToRow(0);
+                uint32_t targetOffset = i * _rows;
+                float *operandOffset = &operandMatrix._floatMatrix[i * operandMatrix._rows];
+                for (uint32_t j = 0; j < _rows; j++)
                 {
-                    moveToRow(i);
                     float accumulator = 0;
                     uint16_t columnIndex = 0;
-                    uint32_t matrixOffset = j * operandMatrix._rows;
-
-                    for (uint32_t k = 0; k < _blocksPerDimension; k++)
+                    for (uint16_t k = 0; k < _blocksPerDimension; k++)
                     {
                         auto [rowBlock, rowData] = nextRowBlock();    
-                        
                         for (uint8_t l = countr_zero(rowBlock), m = 1; l < _BLOCK_SIZE; 
                                 l = countr_zero(rowBlock & (_UINT32_MASK_MAX << l)), m++)
                         {
-                            accumulator += rowData[m] * operandMatrix._floatMatrix[matrixOffset + columnIndex + l];
+                            accumulator += rowData[m] * operandOffset[columnIndex + l];
                         }
                         columnIndex += _BLOCK_SIZE;
                     }
@@ -523,10 +523,10 @@ void InDataBitmapSparse::dot(Dense &operandMatrix, Dense &targetMatrix)
     }
 }
 
-Dense InDataBitmapSparse::dot(Dense &matrix)
+Dense InDataBitmapSparse::dot(Dense &operandMatrix)
 {
-    Dense targetMatrix(_rows, matrix._columns, ROW_MAJOR);
-    dot(matrix, targetMatrix);
+    Dense targetMatrix(_rows, operandMatrix._columns, COLUMN_MAJOR);
+    dot(operandMatrix, targetMatrix);
 
     return targetMatrix;
 }

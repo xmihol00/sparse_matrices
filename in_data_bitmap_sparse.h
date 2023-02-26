@@ -10,7 +10,9 @@ namespace Matrix
     {
         private:
             friend class Dense;
+            
             uint32_t *_buffer;
+            uint32_t _blockIndex = 0;
 
             void allocateSpaceRowMajorCSV(std::ifstream &file) override;
             void allocateSpaceColumnMajorCSV(std::ifstream &file) override;
@@ -35,9 +37,9 @@ namespace Matrix
             void saveAsCSV(std::string fileName) override;
 
             void dot(InDataBitmapSparse &operandMatrix, Dense &targetMatrix);
-            Dense dot(InDataBitmapSparse &matrix);
+            Dense dot(InDataBitmapSparse &operandMatrix);
             void dot(Dense &operandMatrix, Dense &targetMatrix);
-            Dense dot(Dense &matrix);
+            Dense dot(Dense &operandMatrix);
     };
 }
 

@@ -1,6 +1,8 @@
 #include "dense_cuda.h"
 #include "dense_cuda_priv.h"
 
+using namespace std;
+
 __global__ void dotRowsColumns(float *operandA, float *operandB, float *target, uint16_t rowsA, uint16_t columnsB, uint16_t elements)
 {
     uint16_t rowIndex = blockIdx.x * blockDim.x + threadIdx.x;
@@ -13,7 +15,7 @@ __global__ void dotRowsColumns(float *operandA, float *operandB, float *target, 
     float *offsetOperandA = &operandA[rowIndex * elements];
     float *offsetOperandB = &operandB[columnIndex * elements];
     
-    float accumulator = 0;
+    register float accumulator = 0;
     for (uint16_t i = 0; i < elements; i++)
     {
         accumulator += offsetOperandA[i] * offsetOperandB[i];
@@ -24,21 +26,26 @@ __global__ void dotRowsColumns(float *operandA, float *operandB, float *target, 
 
 void dotRowsColumns(float *operandA, float *operandB, float *target, uint16_t rowsA, uint16_t columnsB, uint64_t sizeA, uint64_t sizeB)
 {
-    const uint8_t BLOCK_DIMENSION = 16;
+    uint8_t blockDimension = rowsA * columnsB / (UINT8_MAX + 1) > UINT16_MAX ? 32 : 16;
     float *dOperandA, *dOperandB, *dTarget;
-    uint32_t sizeTraget = rowsA * columnsB * sizeof(float);
+    uint64_t sizeTraget = rowsA * columnsB * sizeof(float);
     
-    cudaMalloc((void **)&dOperandA, sizeA);
-    cudaMalloc((void **)&dOperandB, sizeB);
-    cudaMalloc((void **)&dTarget, sizeTraget);
+    cudaMalloc(reinterpret_cast<void **>(&dOperandA), sizeA);
+    cudaMalloc(reinterpret_cast<void **>(&dOperandB), sizeB);
+    cudaMalloc(reinterpret_cast<void **>(&dTarget), sizeTraget);
     
     cudaMemcpy(dOperandA, operandA, sizeA, cudaMemcpyHostToDevice);
     cudaMemcpy(dOperandB, operandB, sizeB, cudaMemcpyHostToDevice);
 
-    dim3 blockSize(BLOCK_DIMENSION, BLOCK_DIMENSION, 1);
-    dim3 gridSize((rowsA + BLOCK_DIMENSION - 1) / BLOCK_DIMENSION, (columnsB + BLOCK_DIMENSION - 1) / BLOCK_DIMENSION, 1);
-    dotRowsColumns<<<blockSize, gridSize>>>(dOperandA, dOperandB, dTarget, rowsA, columnsB, sizeA / (rowsA * sizeof(float)));
-    cudaDeviceSynchronize();
+    dim3 blockSize(blockDimension, blockDimension, 1);
+    dim3 gridSize((rowsA + blockDimension - 1) / blockDimension, (columnsB + blockDimension - 1) / blockDimension, 1);
+    dotRowsColumns<<<gridSize, blockSize>>>(dOperandA, dOperandB, dTarget, rowsA, columnsB, sizeA / (rowsA * sizeof(float)));
+    cudaError_t error = cudaDeviceSynchronize();
+    if (error != cudaSuccess)
+    {
+        cerr << cudaGetErrorString(error) << endl;
+        exit(1);
+    }
     
     cudaMemcpy(target, dTarget, sizeTraget, cudaMemcpyDeviceToHost);
     

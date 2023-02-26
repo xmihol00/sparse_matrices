@@ -146,17 +146,55 @@ void Dense::saveAsCSV(std::string fileName)
     (void)fileName;
 }
 
-void Dense::dotGPU(Dense &matrix, Dense &targetMatrix)
+void Dense::dot(Dense &operandMatrix, Dense &targetMatrix)
 {
-    dotRowsColumns(_floatMatrix, matrix._floatMatrix, targetMatrix._floatMatrix, _rows, matrix._columns, _size, matrix._size);
+    if (_dimMajority == ROW_MAJOR)
+    {
+        if (operandMatrix._dimMajority == COLUMN_MAJOR)
+        {
+            for (uint16_t i = 0; i < operandMatrix._columns; i++)
+            {
+                float *column = &operandMatrix._floatMatrix[i * operandMatrix._rows];
+                for (uint16_t j = 0; j < _rows; j++)
+                {
+                    float *row = &_floatMatrix[j * _columns];
+                    float accumulator = 0;
+                    for (uint16_t k = 0; k < _columns; k++)
+                    {
+                        accumulator += row[k] * column[k];
+                    }
+                    targetMatrix._floatMatrix[i * _rows + j] = accumulator;
+                }
+            }
+        }
+    }
 }
 
-Dense Dense::dotGPU(Dense &matrix)
+Dense Dense::dot(Dense &operandMatrix)
 {
-    Dense targetMatrix(_rows, matrix._columns, COLUMN_MAJOR);
-    dotGPU(matrix, targetMatrix);
+    Dense targetMatrix(_rows, operandMatrix._columns, COLUMN_MAJOR);
+    dot(operandMatrix, targetMatrix);
 
     return targetMatrix;
 }
 
 
+void Dense::dotGPU(Dense &operandMatrix, Dense &targetMatrix)
+{
+    if (_dimMajority == ROW_MAJOR)
+    {
+        if (operandMatrix._dimMajority == COLUMN_MAJOR)
+        {
+            dotRowsColumns(_floatMatrix, operandMatrix._floatMatrix, targetMatrix._floatMatrix, _rows, operandMatrix._columns, 
+                           _size, operandMatrix._size);
+        }
+    }
+}
+
+Dense Dense::dotGPU(Dense &operandMatrix)
+{
+    Dense targetMatrix(_rows, operandMatrix._columns, COLUMN_MAJOR);
+    dotGPU(operandMatrix, targetMatrix);
+
+    return targetMatrix;
+}
