@@ -1,18 +1,16 @@
-#ifndef BLOCK_SPARSE_H
-#define BLOCK_SPARSE_H
+#ifndef CSR_SPARSE_H
+#define CSR_SPARSE_H
 
 #include "sparse.h"
 #include "dense.h"
 
 namespace Matrix
 {
-    class BlockSparse : public Sparse
+    class CSRSparse : public Sparse
     {
         private:
-            uint8_t _entriesPerBlock;
-            uint16_t _entriesPerDimension;
-
-            uint8_t *_entryIndices;
+            uint32_t _nonZeroEntries = 0;
+            uint16_t *_columnIndices;
             float *_dataMatrix;
 
             void allocateSpaceRowMajorCSV(std::ifstream &file) override;
@@ -21,13 +19,11 @@ namespace Matrix
             void loadDataColumnMajorCSV(std::ifstream &file) override;
 
             void loadBinary(std::string fileName) override;
-
-            void dotRowColumn(Dense &operandMatrix, Dense &targetMatrix);
         
         public:
-            BlockSparse() = default;
-            BlockSparse(std::string fileName, uint16_t blocksPerDimension, DimenstionMajorityEnum dimMajority = FILE_DETERMINED);
-            ~BlockSparse() = default;
+            CSRSparse() = default;
+            CSRSparse(std::string fileName, DimenstionMajorityEnum dimMajority = FILE_DETERMINED);
+            ~CSRSparse() = default;
 
             void printColumn(uint16_t columnIndex, uint8_t precision = 7) override;
             void printRow(uint16_t rowIndex, uint8_t precision = 7) override;
@@ -37,9 +33,6 @@ namespace Matrix
 
             void dot(Dense &operandMatrix, Dense &targetMatrix);
             Dense dot(Dense &operandMatrix);
-
-            void dotGPU(Dense &operandMatrix, Dense &targetMatrix);
-            Dense dotGPU(Dense &operandMatrix);
     };
 }
 

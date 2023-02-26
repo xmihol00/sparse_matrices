@@ -1,7 +1,7 @@
 CC = g++-11
 NVCC = nvcc
-CFLAGS = -std=c++20 -Wall -Wextra -MMD -O3
-NVCCLAGS = --std=c++11 -MMD -O3 
+CFLAGS = -std=c++20 -Wall -Wextra -MMD -g
+NVCCLAGS = --std=c++11 -MMD -g 
 LDFLAGS = -L/usr/local/cuda-10.2/lib64/ -lcuda -lcudart
 BUILD_DIR = ./build
 CPP_BUILD_DIR = cpp

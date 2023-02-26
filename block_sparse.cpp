@@ -256,20 +256,32 @@ void BlockSparse::printRow(uint16_t rowIndex, uint8_t precision)
     }
 }
 
-void BlockSparse::dotRowColumnBlock(uint16_t columnIndex, uint32_t blockIndex, Dense &operandMatrix, Dense &targetMatrix)
+void BlockSparse::dotRowColumn(Dense &operandMatrix, Dense &targetMatrix)
 {
-    uint16_t rowIndex = blockIndex / _blocksPerDimension;
-    float *blockData = &_dataMatrix[blockIndex * _entriesPerBlock];
-    float *columnData = &operandMatrix._floatMatrix[columnIndex * operandMatrix._rows + _uint16Matrix[blockIndex]];
-    uint8_t *entryIndices = &_entryIndices[blockIndex * (_entriesPerBlock - 1)];
-    float accumulator = 0;
-
-    for (uint8_t i = 0, j = 0; i < _entriesPerBlock; j = entryIndices[i++])
+    for (uint16_t i = 0; i < _rows; i++)
     {
-        accumulator += blockData[i] * columnData[j];
+        uint32_t blocks = i * _blocksPerDimension;
+        uint32_t entries = blocks * _entriesPerBlock;
+        uint32_t entriesSub = entries - blocks;
+        for (uint16_t j = 0; j < operandMatrix._columns; j++)
+        {
+            uint16_t *offsetBlockIndices = &_uint16Matrix[blocks];
+            uint8_t *offsetEntryIndices = &_entryIndices[entriesSub];
+            float *row = &_dataMatrix[entries];
+            float accumulator = 0;
+            for (uint16_t k = 0; k < _blocksPerDimension; k++)
+            {
+                float *column = &operandMatrix._floatMatrix[j * operandMatrix._rows + offsetBlockIndices[k]];
+                for (uint8_t m = 0, n = 0; m < _entriesPerBlock; n = offsetEntryIndices[m++])
+                {
+                    accumulator += row[m] * column[n];
+                }
+                offsetEntryIndices = &offsetEntryIndices[_entriesPerBlock - 1];
+                row = &row[_entriesPerBlock];
+            }
+            targetMatrix._floatMatrix[j * _rows + i] = accumulator;
+        }
     }
-
-    targetMatrix._floatMatrix[columnIndex * _rows + rowIndex] += accumulator;
 }
 
 void BlockSparse::dot(Dense &operandMatrix, Dense &targetMatrix)
@@ -278,30 +290,7 @@ void BlockSparse::dot(Dense &operandMatrix, Dense &targetMatrix)
     {
         if (operandMatrix._dimMajority == COLUMN_MAJOR)
         {
-            for (uint16_t i = 0; i < _rows; i++)
-            {
-                uint32_t blocks = i * _blocksPerDimension;
-                uint32_t entries = blocks * _entriesPerBlock;
-                uint32_t entriesSub = entries - blocks;
-                for (uint16_t j = 0; j < operandMatrix._columns; j++)
-                {
-                    uint16_t *offsetBlockIndices = &_uint16Matrix[blocks];
-                    uint8_t *offsetEntryIndices = &_entryIndices[entriesSub];
-                    float *row = &_dataMatrix[entries];
-                    float accumulator = 0;
-                    for (uint16_t k = 0; k < _blocksPerDimension; k++)
-                    {
-                        float *column = &operandMatrix._floatMatrix[j * operandMatrix._rows + offsetBlockIndices[k]];
-                        for (uint8_t m = 0, n = 0; m < _entriesPerBlock; n = offsetEntryIndices[m++])
-                        {
-                            accumulator += row[m] * column[n];
-                        }
-                        offsetEntryIndices = &offsetEntryIndices[_entriesPerBlock - 1];
-                        row = &row[_entriesPerBlock];
-                    }
-                    targetMatrix._floatMatrix[j * _rows + i] = accumulator;
-                }
-            }
+            dotRowColumn(operandMatrix, targetMatrix);
         }
     }
 }
