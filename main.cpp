@@ -21,17 +21,25 @@ int main(int argc, char *argv[])
         fileName = DEFAULT_FILENAME;
     }
     
-    //InDataBitmapSparse rowMat = InDataBitmapSparse("0.5_saparse.csv", ROW_MAJOR);
-    //BlockSparse rowMat = BlockSparse("0.5_saparse.csv", 32, ROW_MAJOR);
-    CSRSparse rowMat = CSRSparse(fileName, ROW_MAJOR);
-    rowMat.printMatrix();
-    //Dense rowMat = Dense("0.5_saparse.csv", ROW_MAJOR);
-    //Dense colMat = Dense("0.5_saparse.csv", COLUMN_MAJOR);
+    //InDataBitmapSparse rowMat = InDataBitmapSparse(fileName, ROW_MAJOR);
+    //BlockSparse rowMat = BlockSparse(fileName, 32, ROW_MAJOR);
+    //CSRSparse rowMat = CSRSparse(fileName, ROW_MAJOR);
+    //rowMat.printMatrix();
+    //Dense rowMat = Dense(fileName, ROW_MAJOR);
+    //Dense colMat = Dense(fileName, COLUMN_MAJOR);
     //Dense denseMat = rowMat.dotGPU(colMat);
     //denseMat.printMatrix(1);
 
     //rowMat.printSize();
     //colMat.printSize();
+
+    Dense denseMat = Dense(fileName, ROW_MAJOR);
+    BlockSparse blockMat = BlockSparse(fileName, 26, ROW_MAJOR);
+    CSRSparse CSRMat = CSRSparse(fileName, ROW_MAJOR);
+
+    denseMat.printSize();
+    blockMat.printSize();
+    CSRMat.printSize();
 
     return 0;
 }

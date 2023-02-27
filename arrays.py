@@ -1,8 +1,8 @@
 import numpy as np
 
-ROWS = 100
-COLUMNS = 100
-sparsity = 0.25
+ROWS = 1000
+COLUMNS = 1000
+sparsity = 0.95
 array = np.random.rand(ROWS, COLUMNS)
 array *= np.random.rand(ROWS, COLUMNS) > sparsity
 array = array.astype(dtype=np.float32)

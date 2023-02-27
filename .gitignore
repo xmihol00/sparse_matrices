@@ -3,4 +3,4 @@ main
 __pycache__/
 
 *.csv
-*.bms
+*.bin
