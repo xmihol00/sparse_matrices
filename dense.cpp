@@ -1,5 +1,5 @@
 #include "dense.h"
-#include "dense_cuda.h"
+#include "dense.cuh"
 
 using namespace std;
 using namespace Matrix;
@@ -198,3 +198,18 @@ Dense Dense::dotGPU(Dense &operandMatrix)
 
     return targetMatrix;
 }
+
+void Dense::dotGPUCuBLAS(Dense &operandMatrix, Dense &targetMatrix)
+{
+    dotCuBLAS(_floatMatrix, operandMatrix._floatMatrix, targetMatrix._floatMatrix, _rows, operandMatrix._columns, _columns, 
+              _rows, operandMatrix._columns, _columns);
+}
+
+Dense Dense::dotGPUCuBLAS(Dense &operandMatrix)
+{
+    Dense targetMatrix(_rows, operandMatrix._columns, COLUMN_MAJOR);
+    dotGPUCuBLAS(operandMatrix, targetMatrix);
+
+    return targetMatrix;
+}
+

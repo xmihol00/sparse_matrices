@@ -1,5 +1,5 @@
-#include "block_sparse_cuda.h"
-#include "block_sparse_cuda_priv.h"
+#include "block_sparse.cuh"
+#include "block_sparse_priv.cuh"
 
 using namespace Matrix;
 using namespace std;
@@ -70,3 +70,5 @@ void dotRowsColumns(matrix_ptrs_t operandA, float *operandB, float *target, uint
     cudaFree(dOperandB);
     cudaFree(dTarget);
 }
+
+

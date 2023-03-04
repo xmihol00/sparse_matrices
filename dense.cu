@@ -1,5 +1,5 @@
-#include "dense_cuda.h"
-#include "dense_cuda_priv.h"
+#include "dense.cuh"
+#include "dense_priv.cuh"
 
 using namespace std;
 
@@ -48,6 +48,43 @@ void dotRowsColumns(float *operandA, float *operandB, float *target, uint16_t ro
     }
     
     cudaMemcpy(target, dTarget, sizeTraget, cudaMemcpyDeviceToHost);
+    
+    cudaFree(dOperandA);
+    cudaFree(dOperandB);
+    cudaFree(dTarget);
+}
+
+
+void dotCuBLAS(float *operandA, float *operandB, float *target, uint16_t rowsA, uint16_t columnsB, uint16_t columnsARowsB, 
+                uint16_t lda, uint16_t ldb, uint16_t ldc)
+{
+    float *dOperandA, *dOperandB, *dTarget;
+    uint32_t sizeA = rowsA * columnsARowsB * sizeof(float);
+    uint32_t sizeB = columnsB * columnsARowsB * sizeof(float);
+    uint32_t sizeTarget = rowsA * columnsB * sizeof(float);
+    cudaMalloc(reinterpret_cast<void **>(&dOperandA), sizeA);
+    cudaMalloc(reinterpret_cast<void **>(&dOperandB), sizeB);
+    cudaMalloc(reinterpret_cast<void **>(&dTarget), sizeTarget);
+    
+    cudaMemcpy(dOperandA, operandA, sizeA, cudaMemcpyHostToDevice);
+    cudaMemcpy(dOperandB, operandB, sizeB, cudaMemcpyHostToDevice);
+
+    const float alpha = 1;
+    const float beta = 0;
+
+    cublasHandle_t handle;
+    cublasCreate(&handle);
+    cublasStatus_t status = cublasSgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, rowsA, columnsB, columnsARowsB, 
+                                        &alpha, dOperandA, lda, dOperandB, ldb, &beta, dTarget, ldc);
+    cudaError_t error = cudaDeviceSynchronize();
+    cublasDestroy(handle);
+    if (status != CUBLAS_STATUS_SUCCESS || error != cudaSuccess)
+    {
+        cerr << "cuBLAS matrix multiply failed: " << cudaGetErrorString(error) << endl;
+        exit(1);
+    }
+
+    cudaMemcpy(target, dTarget, sizeTarget, cudaMemcpyDeviceToHost);
     
     cudaFree(dOperandA);
     cudaFree(dOperandB);

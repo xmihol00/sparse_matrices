@@ -22,24 +22,13 @@ int main(int argc, char *argv[])
     }
     
     //InDataBitmapSparse rowMat = InDataBitmapSparse(fileName, ROW_MAJOR);
-    //BlockSparse rowMat = BlockSparse(fileName, 32, ROW_MAJOR);
+    //BlockSparse rowMat = BlockSparse(fileName, 12, ROW_MAJOR);
     //CSRSparse rowMat = CSRSparse(fileName, ROW_MAJOR);
     //rowMat.printMatrix();
-    //Dense rowMat = Dense(fileName, ROW_MAJOR);
-    //Dense colMat = Dense(fileName, COLUMN_MAJOR);
-    //Dense denseMat = rowMat.dotGPU(colMat);
-    //denseMat.printMatrix(1);
-
-    //rowMat.printSize();
-    //colMat.printSize();
-
-    Dense denseMat = Dense(fileName, ROW_MAJOR);
-    BlockSparse blockMat = BlockSparse(fileName, 26, ROW_MAJOR);
-    CSRSparse CSRMat = CSRSparse(fileName, ROW_MAJOR);
-
-    denseMat.printSize();
-    blockMat.printSize();
-    CSRMat.printSize();
+    Dense rowMat = Dense(fileName, ROW_MAJOR);
+    Dense colMat = Dense(fileName, COLUMN_MAJOR);
+    Dense denseMat = rowMat.dotGPUCuBLAS(colMat);
+    denseMat.printMatrix(1);
 
     return 0;
 }

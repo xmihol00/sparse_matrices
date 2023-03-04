@@ -1,19 +1,28 @@
 {
     "env": {
-      "myDefaultIncludePath": ["${workspaceFolder}", "${workspaceFolder}/include"]
+        "myDefaultIncludePath": [
+            "${workspaceFolder}",
+            "${workspaceFolder}/include",
+            "/usr/local/cuda-10.2/targets/x86_64-linux/include/"
+        ]
     },
     "configurations": [
-      {
-        "name": "cpp20",
-        "cStandard": "c11",
-        "cppStandard": "c++20",
-        "browse": {
-          "path": ["${workspaceFolder}"],
-          "limitSymbolsToIncludedHeaders": true,
-          "databaseFilename": ""
+        {
+            "name": "cpp20",
+            "cStandard": "c11",
+            "cppStandard": "c++20",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}"
+                ],
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": ""
+            },
+            "compilerPath": "/usr/bin/g++-11",
+            "includePath": [
+                "${default}"
+            ]
         }
-      }
     ],
     "version": 4
-  }
-  
+}

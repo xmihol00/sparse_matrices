@@ -31,6 +31,9 @@ namespace Matrix
 
             void dotGPU(Dense &operandMatrix, Dense &targetMatrix);
             Dense dotGPU(Dense &operandMatrix);
+
+            void dotGPUCuBLAS(Dense &operandMatrix, Dense &targetMatrix);
+            Dense dotGPUCuBLAS(Dense &operandMatrix);
     };
 }
 

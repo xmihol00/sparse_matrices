@@ -1,5 +1,5 @@
 #include "block_sparse.h"
-#include "block_sparse_cuda.h"
+#include "block_sparse.cuh"
 #include "typedefs.h"
 
 using namespace std;
