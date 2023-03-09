@@ -2,7 +2,7 @@ import numpy as np
 
 ROWS = 2048
 COLUMNS = 2048
-sparsity = 0.5
+sparsity = 0.75
 array = np.random.rand(ROWS, COLUMNS)
 array *= np.random.rand(ROWS, COLUMNS) > sparsity
 array = array.astype(dtype=np.float32)
