@@ -3,14 +3,17 @@ NVCC = nvcc
 CFLAGS = -std=c++20 -Wall -Wextra -MMD -O2
 NVCCLAGS = --std=c++11 -MMD -O2 
 LDFLAGS = -L/usr/local/cuda-10.2/lib64/ -lcuda -lcudart -lcublas_static -lcublasLt_static -lculibos
-BUILD_DIR = ./build
+SRC_DIR = cpp_src
+BUILD_DIR = build
 CPP_BUILD_DIR = cpp
 CUDA_BUILD_DIR = cuda
 EXE = main
-CPP_SRC = $(wildcard *.cpp)
-CUDA_SRC = $(wildcard *.cu)
-CPP_OBJ = ${CPP_SRC:.cpp=.o}
-CUDA_OBJ = ${CUDA_SRC:.cu=.o}
+CPP_SRC = $(wildcard */*.cpp)
+CUDA_SRC = $(wildcard */*.cu)
+CPP_STRIPPED = ${CPP_SRC:$(SRC_DIR)/%=%}
+CUDA_STRIPPED = ${CUDA_SRC:$(SRC_DIR)/%=%}
+CPP_OBJ = ${CPP_STRIPPED:.cpp=.o}
+CUDA_OBJ = ${CUDA_STRIPPED:.cu=.o}
 CPP_DEPS = ${CPP_OBJ:.o=.d}
 CUDA_DEPS = ${CUDA_OBJ:.o=.d}
 DIR_CPP_OBJ = $(addprefix $(BUILD_DIR)/$(CPP_BUILD_DIR)/, $(CPP_OBJ))
@@ -27,12 +30,12 @@ all: $(EXE)
 $(EXE): $(DIR_CPP_OBJ) $(DIR_CUDA_OBJ)
 	$(CC) $(DIR_CPP_OBJ) $(DIR_CUDA_OBJ) $(CFLAGS) $(LDFLAGS) -o $(EXE)
 
-$(BUILD_DIR)/$(CPP_BUILD_DIR)/%.o: %.cpp
+$(BUILD_DIR)/$(CPP_BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(BUILD_DIR)
 	@mkdir -p $(BUILD_DIR)/$(CPP_BUILD_DIR)
 	$(CC) $< $(CFLAGS) -c -o $@
 
-$(BUILD_DIR)/$(CUDA_BUILD_DIR)/%.o: %.cu
+$(BUILD_DIR)/$(CUDA_BUILD_DIR)/%.o: $(SRC_DIR)/%.cu
 	@mkdir -p $(BUILD_DIR)
 	@mkdir -p $(BUILD_DIR)/$(CUDA_BUILD_DIR)
 	$(NVCC) $< $(NVCCLAGS) -c -o $@
