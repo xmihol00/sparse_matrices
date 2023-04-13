@@ -5,3 +5,5 @@ __pycache__/
 *.csv
 *.bin
 prof*
+*.tflite
+*.npy
