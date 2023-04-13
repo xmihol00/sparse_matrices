@@ -27,7 +27,7 @@ namespace Matrix
             std::tuple<uint32_t, float *> nextColumnBlock();
 
         public:
-            InDataBitmapSparse(std::string fileName, DimenstionMajorityEnum dimMajority = FILE_DETERMINED);
+            InDataBitmapSparse(std::string fileName, DimensionMajorityEnum dimMajority = FILE_DETERMINED);
             ~InDataBitmapSparse() = default;
 
             void printRow(uint16_t rowIndex, uint8_t precision = 7) override;

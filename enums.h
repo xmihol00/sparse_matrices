@@ -3,7 +3,7 @@
 
 namespace Matrix
 {
-    enum DimenstionMajorityEnum
+    enum DimensionMajorityEnum
     {
         FILE_DETERMINED = 0,
         ROW_MAJOR,

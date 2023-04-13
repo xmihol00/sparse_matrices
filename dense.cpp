@@ -4,7 +4,7 @@
 using namespace std;
 using namespace Matrix;
 
-Dense::Dense(string fileName, DimenstionMajorityEnum dimMajority) : Base(dimMajority) 
+Dense::Dense(string fileName, DimensionMajorityEnum dimMajority) : Base(dimMajority) 
 {
     if (fileName.ends_with(".csv"))
     {
@@ -25,7 +25,7 @@ Dense::Dense(string fileName, DimenstionMajorityEnum dimMajority) : Base(dimMajo
     }
 }
 
-Dense::Dense(uint32_t rows, uint32_t columns, DimenstionMajorityEnum dimMajority, std::byte *data) : Base(rows, columns, dimMajority)
+Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, std::byte *data) : Base(rows, columns, dimMajority)
 {
     _byteMatrix = new byte[_size]();
 
@@ -40,7 +40,6 @@ void Dense::loadCSV(string fileName)
     ifstream file(fileName);
     if (file.is_open()) 
     {
-
         string row;
         getline(file, row);
         _columns = count(row.begin(), row.end(), ',') + 1;
@@ -106,7 +105,7 @@ void Dense::printRow(uint16_t rowIndex, uint8_t precision)
     {
         int32_t i = rowIndex;
         int32_t upperBound = (_rows - 1) * _columns;
-        for (; i < upperBound; i += _rows)
+        for (; i < upperBound && _columns > 1; i += _rows)
         {
             cout << _floatMatrix[i] << ',';
         }
@@ -213,3 +212,100 @@ Dense Dense::dotGPUCuBLAS(Dense &operandMatrix)
     return targetMatrix;
 }
 
+void Dense::add(Dense &operandMatrix)
+{
+    if (_dimMajority == operandMatrix._dimMajority)
+    {
+        if (_size == operandMatrix._size)
+        {
+            for (uint32_t i = 0; i < _columns * _rows; i++)
+            {
+                _floatMatrix[i] += operandMatrix._floatMatrix[i];
+            }
+        }
+        else if (_dimMajority == COLUMN_MAJOR && _rows == operandMatrix._rows && operandMatrix._columns == 1)
+        {
+            for (uint32_t i = 0; i < _columns; i++)
+            {
+                float *column = &_floatMatrix[i * _rows];
+                for (uint32_t j = 0; j < _rows; j++)
+                {
+                    column[j] += operandMatrix._floatMatrix[j];
+                }
+            }
+        }
+        else if (_dimMajority == ROW_MAJOR && _columns == operandMatrix._columns)
+        {
+            for (uint32_t i = 0; i < _rows; i++)
+            {
+                float *row = &_floatMatrix[i * _columns];
+                for (uint32_t j = 0; j < _columns; j++)
+                {
+                    row[j] += operandMatrix._floatMatrix[j];
+                }
+            }
+        }
+    }
+}
+
+void Dense::ReLU()
+{
+    for (uint32_t i = 0; i < _columns * _rows; i++)
+    {
+        _floatMatrix[i] = max(0.0f, _floatMatrix[i]);
+    }
+}
+
+void Dense::argmax(uint8_t axis, Dense &targetMatrix)
+{
+    if (axis == 0) // argmax over columns
+    {
+        if (_dimMajority == COLUMN_MAJOR)
+        {
+            for (uint32_t i = 0; i < _columns; i++)
+            {
+                float *column = &_floatMatrix[i * _rows];
+                float max = column[0];
+                uint32_t maxIndex = 0;
+                for (uint32_t j = 1; j < _rows; j++)
+                {
+                    if (column[j] > max)
+                    {
+                        max = column[j];
+                        maxIndex = j;
+                    }
+                }
+                targetMatrix._floatMatrix[i] = maxIndex;
+            }
+        }
+    }
+    else if (axis == 1) // argmax over rows
+    {
+        if (_dimMajority == ROW_MAJOR)
+        {
+            for (uint32_t i = 0; i < _rows; i++)
+            {
+                float *row = &_floatMatrix[i * _columns];
+                float max = row[0];
+                uint32_t maxIndex = 0;
+                for (uint32_t j = 1; j < _columns; j++)
+                {
+                    if (row[j] > max)
+                    {
+                        max = row[j];
+                        maxIndex = j;
+                    }
+                }
+                targetMatrix._floatMatrix[i] = maxIndex;
+            }
+        }
+    }
+}
+
+Dense Dense::argmax(uint8_t axis)
+{
+    Dense targetMatrix(axis == 0 ? _columns : _rows, 1, COLUMN_MAJOR);
+    argmax(axis, targetMatrix);
+
+    return targetMatrix;
+}

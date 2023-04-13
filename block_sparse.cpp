@@ -5,7 +5,7 @@
 using namespace std;
 using namespace Matrix;
 
-BlockSparse::BlockSparse(std::string fileName, uint16_t blocksPerDimension, DimenstionMajorityEnum dimMajority)
+BlockSparse::BlockSparse(std::string fileName, uint16_t blocksPerDimension, DimensionMajorityEnum dimMajority)
     : Sparse(dimMajority, blocksPerDimension)
 {
     if (fileName.ends_with(".csv"))

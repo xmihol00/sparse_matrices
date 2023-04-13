@@ -26,7 +26,7 @@ namespace Matrix
         
         public:
             BlockSparse() = default;
-            BlockSparse(std::string fileName, uint16_t blocksPerDimension, DimenstionMajorityEnum dimMajority = FILE_DETERMINED);
+            BlockSparse(std::string fileName, uint16_t blocksPerDimension, DimensionMajorityEnum dimMajority = FILE_DETERMINED);
             ~BlockSparse() = default;
 
             void printColumn(uint16_t columnIndex, uint8_t precision = 7) override;

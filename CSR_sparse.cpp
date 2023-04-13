@@ -4,7 +4,7 @@
 using namespace Matrix;
 using namespace std;
 
-CSRSparse::CSRSparse(string fileName, DimenstionMajorityEnum dimMajority)
+CSRSparse::CSRSparse(string fileName, DimensionMajorityEnum dimMajority)
     : Sparse(dimMajority)
 {
     if (fileName.ends_with(".csv"))

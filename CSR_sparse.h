@@ -22,7 +22,7 @@ namespace Matrix
         
         public:
             CSRSparse() = default;
-            CSRSparse(std::string fileName, DimenstionMajorityEnum dimMajority = FILE_DETERMINED);
+            CSRSparse(std::string fileName, DimensionMajorityEnum dimMajority = FILE_DETERMINED);
             ~CSRSparse() = default;
 
             void printColumn(uint16_t columnIndex, uint8_t precision = 7) override;

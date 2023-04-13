@@ -2,12 +2,12 @@ import pandas as pd
 import numpy as np
 import glob
 
-csv_files = sorted(glob.glob("weights/layer_*_weights.csv"))
+weight_files = sorted(glob.glob("weights/weights_l*.csv"))
 
 total_elements = 0
 zero_elements = 0
 
-for file in csv_files:
+for file in weight_files:
     weights_df = pd.read_csv(file)
     
     weights = weights_df.to_numpy()

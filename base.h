@@ -38,15 +38,15 @@ namespace Matrix
             uint64_t _size = 0;
             uint16_t _rows = 0;
             uint16_t _columns = 0;
-            DimenstionMajorityEnum _dimMajority = FILE_DETERMINED;
+            DimensionMajorityEnum _dimMajority = FILE_DETERMINED;
 
             virtual void loadCSV(std::string fileName) = 0;
             virtual void loadBinary(std::string fileName) = 0;
 
         public:
             Base() = default;
-            Base(DimenstionMajorityEnum dimMajority);
-            Base(uint16_t rows, uint16_t columns, DimenstionMajorityEnum dimMajority);
+            Base(DimensionMajorityEnum dimMajority);
+            Base(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority);
             ~Base();
 
             void printSize();
@@ -56,6 +56,9 @@ namespace Matrix
 
             virtual void saveAsBinary(std::string fileName) = 0;
             virtual void saveAsCSV(std::string fileName) = 0;
+
+            inline uint16_t getRows() { return _rows; }
+            inline uint16_t getColumns() { return _columns; }
     };    
 }
 

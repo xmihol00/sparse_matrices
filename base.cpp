@@ -4,10 +4,10 @@
 using namespace std;
 using namespace Matrix;
 
-Base::Base(DimenstionMajorityEnum dimMajority) : _dimMajority{dimMajority} { }
+Base::Base(DimensionMajorityEnum dimMajority) : _dimMajority{dimMajority} { }
 
-Base::Base(uint16_t rows, uint16_t columns, DimenstionMajorityEnum dimMajority) : 
-    _rows{rows}, _columns{columns}, _dimMajority{dimMajority} 
+Base::Base(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority) : 
+    _rows{rows}, _columns{columns}, _dimMajority{dimMajority}
 {
     _size = rows * columns * sizeof(float);
 }

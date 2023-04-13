@@ -7,3 +7,4 @@ __pycache__/
 prof*
 *.tflite
 *.npy
+log.txt

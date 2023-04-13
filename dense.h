@@ -16,8 +16,8 @@ namespace Matrix
         
         public:
             Dense() = default;
-            Dense(std::string fileName, DimenstionMajorityEnum dimMajority = FILE_DETERMINED);
-            Dense(uint32_t rows, uint32_t columns, DimenstionMajorityEnum dimMajority, std::byte *data = nullptr);
+            Dense(std::string fileName, DimensionMajorityEnum dimMajority = FILE_DETERMINED);
+            Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, std::byte *data = nullptr);
             ~Dense() = default;
 
             void printColumn(uint16_t columnIndex, uint8_t precision = 7) override;
@@ -25,6 +25,13 @@ namespace Matrix
 
             virtual void saveAsBinary(std::string fileName) override;
             virtual void saveAsCSV(std::string fileName) override;
+
+            void add(Dense &operandMatrix);
+
+            void ReLU();
+
+            void argmax(uint8_t axis, Dense &targetMatrix);
+            Dense argmax(uint8_t axis);
 
             void dot(Dense &operandMatrix, Dense &targetMatrix);
             Dense dot(Dense &operandMatrix);

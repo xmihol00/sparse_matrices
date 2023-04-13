@@ -18,7 +18,7 @@ namespace Matrix
 
         public:
             Sparse() = default;
-            Sparse(DimenstionMajorityEnum dimMajority, uint16_t blocksPerDimension = 0);
+            Sparse(DimensionMajorityEnum dimMajority, uint16_t blocksPerDimension = 0);
             ~Sparse() = default;
     };
 }

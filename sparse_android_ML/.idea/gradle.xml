@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GradleSettings">
+    <option name="linkedExternalProjectsSettings">
+      <GradleProjectSettings>
+        <option name="testRunner" value="GRADLE" />
+        <option name="distributionType" value="DEFAULT_WRAPPED" />
+        <option name="externalProjectPath" value="/mnt/sdc3/david/projs/sparse_matrices/sparse_android_ML" />
+        <option name="modules">
+          <set>
+            <option value="/mnt/sdc3/david/projs/sparse_matrices/sparse_android_ML" />
+            <option value="/mnt/sdc3/david/projs/sparse_matrices/sparse_android_ML/app" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+    </option>
+  </component>
+</project>

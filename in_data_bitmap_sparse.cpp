@@ -3,7 +3,7 @@
 using namespace std;
 using namespace Matrix;
 
-InDataBitmapSparse::InDataBitmapSparse(string fileName, DimenstionMajorityEnum dimMajority) : Sparse(dimMajority) 
+InDataBitmapSparse::InDataBitmapSparse(string fileName, DimensionMajorityEnum dimMajority) : Sparse(dimMajority) 
 {
     if (fileName.ends_with(".csv"))
     {
@@ -334,7 +334,7 @@ void InDataBitmapSparse::loadBinary(std::string fileName)
         file.read(reinterpret_cast<char *>(&_columns), sizeof(_columns));
         file.read(reinterpret_cast<char *>(&_blocksPerDimension), sizeof(_blocksPerDimension));
 
-        DimenstionMajorityEnum dimMajority;
+        DimensionMajorityEnum dimMajority;
         file.read(reinterpret_cast<char *>(&dimMajority), sizeof(dimMajority));
         if (_dimMajority != FILE_DETERMINED && _dimMajority != dimMajority)
         {
