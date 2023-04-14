@@ -108,7 +108,7 @@ model = tf.keras.models.Sequential(
 model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
 model.fit(X_train, y_train, epochs=100, batch_size=128, validation_split=0.15, 
           callbacks=[tf.keras.callbacks.EarlyStopping(patience=4, restore_best_weights=True, monitor="val_accuracy", mode="max"),
-                     StructuredRowSparsityCallback(4, 16)])
+                     StructuredColumnSparsityCallback(4, 16)])
 
 # evaluate model
 model.evaluate(X_test, y_test)

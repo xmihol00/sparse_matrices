@@ -1,12 +1,14 @@
 #include <jni.h>
 #include <string>
-//#include <arm_neon.h>
-#include "arm_neon_.h"
+#include <arm_neon.h>
+//#include "arm_neon_.h"
 #include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <iostream>
 #include <fstream>
+#include "copied/models.h"
+#include "copied/dense.h"
 
 using namespace std;
 
@@ -114,41 +116,8 @@ int dotProductNeon(short* vector1, short* vector2, short len) {
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_example_sparseandroidml_MainActivity_stringFromJNI(
         JNIEnv* env,
-        jobject context) {
-
-    // Ramp length and number of trials
-    const int rampLength = 1024;
-    const int trials = 10000;
-
-    // Generate two input vectors
-    // (0, 1, ..., rampLength - 1)
-    // (100, 101, ..., 100 + rampLength-1)
-    auto ramp1 = generateRamp(0, rampLength);
-    auto ramp2 = generateRamp(100, rampLength);
-
-    // Without NEON intrinsics
-    // Invoke dotProduct and measure performance
-    int lastResult = 0;
-
-    auto start = now();
-    for (int i = 0; i < trials; i++) {
-        lastResult = dotProduct(ramp1, ramp2, rampLength);
-    }
-    auto elapsedTime = msElapsedTime(start);
-
-    // With NEON intrinsics
-    // Invoke dotProductNeon and measure performance
-    int lastResultNeon = 0;
-
-    start = now();
-    for (int i = 0; i < trials; i++) {
-        lastResultNeon = dotProductNeon(ramp1, ramp2, rampLength);
-    }
-    auto elapsedTimeNeon = msElapsedTime(start);
-
-    // Clean up
-    delete ramp1, ramp2;
-
+        jobject context) 
+{
     jclass context_class = env->GetObjectClass(context);
     jmethodID get_files_dir_method = env->GetMethodID(context_class, "getFilesDir", "()Ljava/io/File;");
     jobject file_object = env->CallObjectMethod(context, get_files_dir_method);
@@ -159,26 +128,28 @@ Java_com_example_sparseandroidml_MainActivity_stringFromJNI(
     std::string path(path_cstr);
     env->ReleaseStringUTFChars(path_jstring, path_cstr);
 
-    filesystem::path file_path = path + "/matrix.csv";
-    std::ifstream input_file(file_path);
-    string line = "";
-    if (!input_file.is_open()) {
-        line = "Error opening file: " + file_path.string();
-    }
-    else
-    {
-        getline(input_file, line);
-        input_file.close();
-    }
+    //filesystem::path file_path = path + "/matrix.csv";
+    //std::ifstream input_file(file_path);
+    //string line = "";
+    //if (!input_file.is_open()) {
+    //    line = "Error opening file: " + file_path.string();
+    //}
+    //else
+    //{
+    //    getline(input_file, line);
+    //    input_file.close();
+    //}
+
+    Models::Mnist32x32_4L model(path + "/weights_", path + "/biases_");
+    Matrix::Dense input(path + "/mnist_X_test_T.csv", Matrix::COLUMN_MAJOR);
+    auto start = now();
+    Matrix::Dense output = model.predict(input);
+    Matrix::Dense results = output.argmax(0);
+    auto elapsedTime = msElapsedTime(start);
 
     // Display results
     std::string resultsString =
-            "----==== NO NEON ====----\nResult: " + to_string(lastResult)
-            + "\nElapsed time: " + to_string((int) elapsedTime) + " ms"
-            + "\n\n----==== NEON ====----\n"
-            + "Result: " + to_string(lastResultNeon)
-            + "\nElapsed time: " + to_string((int) elapsedTimeNeon) + " ms"
-            + "\nline: " + line;
+            "Elapsed time: " + to_string((int) elapsedTime) + " ms";
 
     return env->NewStringUTF(resultsString.c_str());
 }

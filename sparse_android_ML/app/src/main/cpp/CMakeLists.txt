@@ -14,6 +14,11 @@ project("sparseandroidml")
 # You can define multiple libraries, and CMake builds them for you.
 # Gradle automatically packages shared libraries with your APK.
 
+file(GLOB copied_src CONFIGURE_DEPENDS
+            "copied/*.h"
+            "copied/*.cpp"
+            )
+
 add_library( # Sets the name of the library.
         sparseandroidml
 
@@ -21,7 +26,8 @@ add_library( # Sets the name of the library.
         SHARED
 
         # Provides a relative path to your source file(s).
-        native-lib.cpp)
+        native-lib.cpp
+        ${copied_src})
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by

@@ -24,6 +24,7 @@ import java.io.*
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
+import kotlin.system.measureTimeMillis
 
 class MainActivity : AppCompatActivity() {
 
@@ -50,25 +51,30 @@ class MainActivity : AppCompatActivity() {
 
     private fun saveConfigToInternalStorage() {
         val assetManager = assets
-        val filename = "mnist_X_test.csv"
-        val outFile = File(filesDir, filename)
+        val filenames = arrayOf("mnist_X_test.csv", "mnist_X_test_T.csv", "biases_l0.csv", "biases_l1.csv", "biases_l2.csv",
+                                "biases_l3.csv", "biases_l4.csv", "weights_l0.csv", "weights_l1.csv", "weights_l2.csv",
+                                "weights_l3.csv", "weights_l4.csv", "mnist_y_test.csv")
+        for (filename in filenames)
+        {
+            val outFile = File(filesDir, filename)
 
-        if (!outFile.exists()) {
-            try {
-                assetManager.open(filename).use { inputStream ->
-                    FileOutputStream(outFile).use { outputStream ->
-                        val buffer = ByteArray(1024)
-                        var read: Int
+            if (!outFile.exists()) {
+                try {
+                    assetManager.open(filename).use { inputStream ->
+                        FileOutputStream(outFile).use { outputStream ->
+                            val buffer = ByteArray(1024)
+                            var read: Int
 
-                        while (inputStream.read(buffer).also { read = it } != -1) {
-                            outputStream.write(buffer, 0, read)
+                            while (inputStream.read(buffer).also { read = it } != -1) {
+                                outputStream.write(buffer, 0, read)
+                            }
+
+                            Log.d("MainActivity", "Config file copied to internal storage.")
                         }
-
-                        Log.d("MainActivity", "Config file copied to internal storage.")
                     }
+                } catch (e: IOException) {
+                    Log.e("MainActivity", "Error copying config file to internal storage.", e)
                 }
-            } catch (e: IOException) {
-                Log.e("MainActivity", "Error copying config file to internal storage.", e)
             }
         }
     }
@@ -91,31 +97,36 @@ class MainActivity : AppCompatActivity() {
         }*/
 
         saveConfigToInternalStorage()
-        val X_test = loadCsvFile("mnist_X_test.csv")
-        val y_test = loadCsvFile("mnist_y_test.csv")
 
-        val model = Mnist.newInstance(this)
-        var correctPredictions = 0
-        val totalSamples = X_test.size
+        val accuracy : Double
+        val elapsed = measureTimeMillis {
+            val X_test = loadCsvFile("mnist_X_test.csv")
+            val y_test = loadCsvFile("mnist_y_test.csv")
 
-        for (i in X_test.indices) {
-            val inputFeature0 = TensorBuffer.createFixedSize(intArrayOf(1, 1024), DataType.FLOAT32)
-            inputFeature0.loadArray(X_test[i])
+            val model = Mnist.newInstance(this)
+            var correctPredictions = 0
+            val totalSamples = X_test.size
 
-            val outputs = model.process(inputFeature0)
-            val outputFeature0 = outputs.outputFeature0AsTensorBuffer
+            for (i in X_test.indices) {
+                val inputFeature0 = TensorBuffer.createFixedSize(intArrayOf(1, 1024), DataType.FLOAT32)
+                inputFeature0.loadArray(X_test[i])
 
-            val predictedIndex = outputFeature0.floatArray.withIndex().maxByOrNull { it.value }?.index
-            val trueIndex = y_test[i][0].toInt()
+                val outputs = model.process(inputFeature0)
+                val outputFeature0 = outputs.outputFeature0AsTensorBuffer
 
-            if (predictedIndex == trueIndex) {
-                correctPredictions++
+                val predictedIndex = outputFeature0.floatArray.withIndex().maxByOrNull { it.value }?.index
+                val trueIndex = y_test[i][0].toInt()
+
+                if (predictedIndex == trueIndex) {
+                    correctPredictions++
+                }
             }
+            model.close()
+            accuracy = correctPredictions.toDouble() / totalSamples * 100
         }
-        model.close()
-        val accuracy = correctPredictions.toDouble() / totalSamples * 100
 
-        binding.sampleText.text = "Accuracy: $accuracy%"
+        binding.sampleText.text = "Accuracy: $accuracy % \nElapsed time: $elapsed ms"
+        binding.sampleText.text = "Accuracy: $accuracy % \nElapsed time: $elapsed ms\n" + stringFromJNI()
     }
 
     /**
