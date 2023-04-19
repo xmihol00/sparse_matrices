@@ -6,7 +6,7 @@ using namespace std;
 using namespace Matrix;
 
 BlockSparse::BlockSparse(std::string fileName, uint16_t blocksPerDimension, DimensionMajorityEnum dimMajority)
-    : Sparse(dimMajority, blocksPerDimension)
+    : Sparse(dimMajority), _blocksPerDimension(blocksPerDimension)
 {
     if (fileName.ends_with(".csv"))
     {
@@ -204,7 +204,7 @@ void BlockSparse::printRow(uint16_t rowIndex, uint8_t precision)
             {
                 for (int16_t k = 1; k < blockIndex - previousBlockIndex && columnIndex < _columns; k++)
                 {
-                    cout << 0.0f;
+                    cout << setw(precision + 3) << 0.0f;
                     if (++columnIndex < _columns)
                     {
                         cout << ',';
@@ -217,7 +217,7 @@ void BlockSparse::printRow(uint16_t rowIndex, uint8_t precision)
 
                 if (offsetDataMatrix[dataIndex] && columnIndex < _columns)
                 {
-                    cout << offsetDataMatrix[dataIndex];
+                    cout << setw(precision + 3) << offsetDataMatrix[dataIndex];
                     if (++columnIndex < _columns)
                     {
                         cout << ',';
@@ -239,9 +239,9 @@ void BlockSparse::printRow(uint16_t rowIndex, uint8_t precision)
         {
             for (columnIndex++; columnIndex < _columns; columnIndex++)
             {
-                cout << 0.0f << ',';
+                cout << setw(precision + 3) << 0.0f << ',';
             }
-            cout << 0.0f;
+            cout << setw(precision + 3) << 0.0f;
         }
 
         cout << endl;

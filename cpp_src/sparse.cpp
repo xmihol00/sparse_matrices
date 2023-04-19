@@ -3,8 +3,10 @@
 using namespace std;
 using namespace Matrix;
 
-Sparse::Sparse(DimensionMajorityEnum dimMajority, uint16_t blocksPerDimension) 
-    : Base(dimMajority), _blocksPerDimension{blocksPerDimension} {}
+Sparse::Sparse(DimensionMajorityEnum dimMajority) : Base(dimMajority)
+{
+
+}
 
 void Sparse::loadCSV(string fileName)
 {

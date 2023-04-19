@@ -10,6 +10,7 @@ namespace Matrix
         private:
             friend class InDataBitmapSparse;
             friend class BlockSparse;
+            friend class Block4in16Sparse;
 
             void loadCSV(std::string fileName) override;
             void loadBinary(std::string fileName) override;

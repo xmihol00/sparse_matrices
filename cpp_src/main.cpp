@@ -6,6 +6,7 @@
 #include "block_sparse.h"
 #include "CSR_sparse.h"
 #include "models.h"
+#include "block4in16_sparse.h"
 
 using namespace std;
 using namespace Matrix;
@@ -24,12 +25,15 @@ int main(int argc, char *argv[])
     {
         fileName = DEFAULT_FILENAME;
     }
-    
-    Mnist32x32_4L model("weights/weights_", "weights/biases_");
-    Dense input("datasets/mnist_X_test_T.csv", COLUMN_MAJOR);
-    Dense output = model.predict(input);
-    Dense results = output.argmax(0);
-    results.printMatrix(1);
+
+    Block4in16Sparse rowMat = Block4in16Sparse("weights/weights_l0.csv", ROW_MAJOR);
+    rowMat.printMatrix();
+
+    //Mnist32x32_4L model("weights/weights_", "weights/biases_");
+    //Dense input("datasets/mnist_X_test_T.csv", COLUMN_MAJOR);
+    //Dense output = model.predict(input);
+    //Dense results = output.argmax(0);
+    //results.printMatrix(1);
 
     //InDataBitmapSparse rowMat = InDataBitmapSparse(fileName, ROW_MAJOR);
     //BlockSparse rowMat = BlockSparse(fileName, 16, ROW_MAJOR);

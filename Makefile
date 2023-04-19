@@ -1,6 +1,6 @@
 CC = g++-11
 NVCC = nvcc
-CFLAGS = -std=c++20 -Wall -Wextra -MMD -O2
+CFLAGS = -std=c++20 -Wall -Wextra -MMD -g #-O2
 NVCCLAGS = --std=c++11 -MMD -O2 
 LDFLAGS = -L/usr/local/cuda-10.2/lib64/ -lcuda -lcudart -lcublas_static -lcublasLt_static -lculibos
 DEPLOY_DIR = sparse_android_ML/app/src/main/cpp/copied
@@ -24,9 +24,12 @@ DIR_CUDA_DEPS = $(addprefix $(BUILD_DIR)/, $(CUDA_DEPS))
 DEPLOY_FILES = base.h base.cpp dense.h dense.cpp models.h models.cpp enums.h
 COPY_SRC = $(addprefix $(SRC_DIR)/, $(DEPLOY_FILES))
 
-.PHONY: all clean deploy
+.PHONY: all multi_threaded clean deploy
 
-all: $(EXE)
+all:
+	$(MAKE) -j8 multi_threaded
+
+multi_threaded: $(EXE)
 
 -include $(DIR_CPP_DEPS) $(DIR_CUDA_DEPS)
 

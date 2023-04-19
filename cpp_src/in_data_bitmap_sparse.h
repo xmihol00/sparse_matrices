@@ -13,6 +13,7 @@ namespace Matrix
             
             uint32_t *_buffer;
             uint32_t _blockIndex = 0;
+            uint16_t _blocksPerDimension = 0;
 
             void allocateSpaceRowMajorCSV(std::ifstream &file) override;
             void allocateSpaceColumnMajorCSV(std::ifstream &file) override;

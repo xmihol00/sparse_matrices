@@ -8,3 +8,4 @@ prof*
 *.tflite
 *.npy
 log.txt
+log_old.txt

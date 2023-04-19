@@ -156,11 +156,13 @@ void CSRSparse::saveAsCSV(std::string fileName)
 
 void CSRSparse::dot(Dense &operandMatrix, Dense &targetMatrix)
 {
-
+    (void)operandMatrix;
+    (void)targetMatrix;
 }
 
 Dense CSRSparse::dot(Dense &operandMatrix)
 {
-
+    (void)operandMatrix;
+    return Dense();
 }
 

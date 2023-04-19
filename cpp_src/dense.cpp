@@ -97,9 +97,9 @@ void Dense::printRow(uint16_t rowIndex, uint8_t precision)
         float *offsetMatrix = &_floatMatrix[_columns * rowIndex];
         for (int32_t i = 0; i < _columns - 1; i++)
         {
-            cout << offsetMatrix[i] << ',';
+            cout << setw(precision + 3) << offsetMatrix[i] << ',';
         }
-        cout << offsetMatrix[_columns - 1] << endl;
+        cout << setw(precision + 3) << offsetMatrix[_columns - 1] << endl;
     }
     else if (_dimMajority == COLUMN_MAJOR)
     {
@@ -107,9 +107,9 @@ void Dense::printRow(uint16_t rowIndex, uint8_t precision)
         int32_t upperBound = (_rows - 1) * _columns;
         for (; i < upperBound && _columns > 1; i += _rows)
         {
-            cout << _floatMatrix[i] << ',';
+            cout << setw(precision + 3) << _floatMatrix[i] << ',';
         }
-        cout << _floatMatrix[i] << endl;
+        cout << setw(precision + 3) << _floatMatrix[i] << endl;
     }
 }
 
@@ -122,7 +122,7 @@ void Dense::printColumn(uint16_t columnIndex, uint8_t precision)
     {
         for (uint32_t i = columnIndex; i < _rows * _columns; i += _columns)
         {
-            cout << _floatMatrix[i] << endl;
+            cout << setw(precision + 3) << _floatMatrix[i] << endl;
         }
     }
     else if (_dimMajority == COLUMN_MAJOR)
@@ -130,7 +130,7 @@ void Dense::printColumn(uint16_t columnIndex, uint8_t precision)
         float *offsetMatrix = &_floatMatrix[_rows * columnIndex];
         for (uint32_t i = 0; i < _rows; i++)
         {
-            cout << offsetMatrix[i] << endl;
+            cout << setw(precision + 3) << offsetMatrix[i] << endl;
         }
     }
 }
