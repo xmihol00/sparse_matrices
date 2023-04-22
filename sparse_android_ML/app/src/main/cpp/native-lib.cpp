@@ -146,10 +146,15 @@ Java_com_example_sparseandroidml_MainActivity_stringFromJNI(
     Matrix::Dense output = model.predict(input);
     Matrix::Dense results = output.argmax(0);
     auto elapsedTime = msElapsedTime(start);
+    std::string resultsString = "Elapsed time dense: " + to_string((int) elapsedTime) + " ms\n";
 
-    // Display results
-    std::string resultsString =
-            "Elapsed time: " + to_string((int) elapsedTime) + " ms";
+    Models::Mnist32x32_4L_4in16Sparse sparseModel(path + "/weights_", path + "/biases_");
+    Matrix::Dense inputSparse(path + "/mnist_X_test_T.csv", Matrix::COLUMN_MAJOR);
+    start = now();
+    Matrix::Dense outputSparse = sparseModel.predict(inputSparse);
+    Matrix::Dense resultsSparse = outputSparse.argmax(0);
+    elapsedTime = msElapsedTime(start);
+    resultsString += "Elapsed time sparse: " + to_string((int) elapsedTime) + " ms";
 
     return env->NewStringUTF(resultsString.c_str());
 }

@@ -125,8 +125,7 @@ class MainActivity : AppCompatActivity() {
             accuracy = correctPredictions.toDouble() / totalSamples * 100
         }
 
-        binding.sampleText.text = "Accuracy: $accuracy % \nElapsed time: $elapsed ms"
-        binding.sampleText.text = "Accuracy: $accuracy % \nElapsed time: $elapsed ms\n" + stringFromJNI()
+        binding.sampleText.text = "Elapsed time TFLite: $elapsed ms\n" + stringFromJNI()
     }
 
     /**

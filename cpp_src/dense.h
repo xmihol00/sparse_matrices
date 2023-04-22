@@ -34,6 +34,8 @@ namespace Matrix
             void argmax(uint8_t axis, Dense &targetMatrix);
             Dense argmax(uint8_t axis);
 
+            float percentageDifference(Dense &operandMatrix, float threshold = 0.001);
+
             void dot(Dense &operandMatrix, Dense &targetMatrix);
             Dense dot(Dense &operandMatrix);
 

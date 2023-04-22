@@ -309,3 +309,23 @@ Dense Dense::argmax(uint8_t axis)
 
     return targetMatrix;
 }
+
+float Dense::percentageDifference(Dense &operandMatrix, float threshold)
+{
+    if (_dimMajority == operandMatrix._dimMajority)
+    {
+        uint32_t numberOfElements = _columns * _rows;
+        uint32_t sameElements = 0;
+        for (uint32_t i = 0; i < numberOfElements; i++)
+        {
+            if (abs(_floatMatrix[i] - operandMatrix._floatMatrix[i]) <= threshold)
+            {
+                sameElements++;
+            }
+        }
+
+        return static_cast<float>(sameElements) / static_cast<float>(numberOfElements);
+    }
+
+    return 1.0f;
+}

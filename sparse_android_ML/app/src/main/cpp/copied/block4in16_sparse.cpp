@@ -1,28 +1,18 @@
 #include "block4in16_sparse.h"
-#include "arm_neon_.h"
+//#include "../arm_neon_.h"
+#include <arm_neon.h>
 
 using namespace std;
 using namespace Matrix;
 
 Block4in16Sparse::Block4in16Sparse(string fileName, DimensionMajorityEnum dimMajority) : Sparse(dimMajority)
 {
-    if (fileName.ends_with(".csv"))
+    if (_dimMajority == FILE_DETERMINED)
     {
-        if (_dimMajority == FILE_DETERMINED)
-        {
-            throw invalid_argument("Dimension majority must be specified when loading from CSV file.");
-        }
-        
-        loadCSV(fileName);
+        throw invalid_argument("Dimension majority must be specified when loading from CSV file.");
     }
-    else if (fileName.ends_with(".bms"))
-    {
-        loadBinary(fileName);
-    }
-    else
-    {
-        throw invalid_argument("Unsupported file extension.");
-    }
+
+    loadCSV(fileName);
 }
 
 void Block4in16Sparse::allocateSpaceRowMajorCSV(ifstream &file)

@@ -26,29 +26,51 @@ int main(int argc, char *argv[])
         fileName = DEFAULT_FILENAME;
     }
 
-    Block4in16Sparse rowMat = Block4in16Sparse("weights/weights_l0.csv", ROW_MAJOR);
-    rowMat.printMatrix();
 
-    //Mnist32x32_4L model("weights/weights_", "weights/biases_");
-    //Dense input("datasets/mnist_X_test_T.csv", COLUMN_MAJOR);
-    //Dense output = model.predict(input);
-    //Dense results = output.argmax(0);
+    //Block4in16Sparse rowMat = Block4in16Sparse("weights/weights_l0.csv", ROW_MAJOR);
+    //Dense rowMat = Dense("weights/weights_l0.csv", ROW_MAJOR);
+    //Dense colMat = Dense("generated_matrices/random.csv", COLUMN_MAJOR);
+    //Dense result(rowMat.getRows(), colMat.getColumns(), COLUMN_MAJOR);
+//
+    //// measure time of multiplication
+    //auto start = chrono::high_resolution_clock::now();
+    //rowMat.dot(colMat, result);
+    //auto end = chrono::high_resolution_clock::now();
+    //cerr << "Time of multiplication: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
+//
+    //start = chrono::high_resolution_clock::now();
+    //rowMat.dot1(colMat, result);
+    //end = chrono::high_resolution_clock::now();
+    //cerr << "Time of multiplication: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
+//
+    //start = chrono::high_resolution_clock::now();
+    //rowMat.dot2(colMat, result);
+    //end = chrono::high_resolution_clock::now();
+    //cerr << "Time of multiplication: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
+//
+    //result.printMatrix(7);
+
+    Dense groundTruth("datasets/mnist_y_test.csv", COLUMN_MAJOR);
+
+    Dense input("datasets/mnist_X_test_T.csv", COLUMN_MAJOR);
+    Mnist32x32_4L model("weights/weights_", "weights/biases_");
+    auto start = chrono::high_resolution_clock::now();
+    Dense output = model.predict(input);
+    auto end = chrono::high_resolution_clock::now();
+    cerr << "Time of prediction: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
+    Dense results = output.argmax(0);
+    cerr << "Accuracy: " << results.percentageDifference(groundTruth) << endl;
     //results.printMatrix(1);
 
-    //InDataBitmapSparse rowMat = InDataBitmapSparse(fileName, ROW_MAJOR);
-    //BlockSparse rowMat = BlockSparse(fileName, 16, ROW_MAJOR);
-    //CSRSparse rowMat = CSRSparse(fileName, ROW_MAJOR);
-    //rowMat.printMatrix();
-    //Dense rowMat = Dense(fileName, ROW_MAJOR);
-    //Dense colMat = Dense(fileName, COLUMN_MAJOR);
-    //
-    //auto start = chrono::high_resolution_clock::now();
-    //Dense denseMat = rowMat.dot(colMat);
-    //auto end = chrono::high_resolution_clock::now();
-//
-    //chrono::duration<double, milli> elapsed_milliseconds = end - start;
-    //cout << elapsed_milliseconds.count() << " ms" << std::endl;
-    //denseMat.printMatrix(1);
+    Dense inputSparse("datasets/mnist_X_test_T.csv", COLUMN_MAJOR);
+    Mnist32x32_4L_4in16Sparse modelSparse("weights/weights_", "weights/biases_");
+    start = chrono::high_resolution_clock::now();
+    Dense outputSparse = modelSparse.predict(inputSparse);
+    end = chrono::high_resolution_clock::now();
+    cerr << "Time of prediction: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
+    Dense resultsSparse = outputSparse.argmax(0);
+    cerr << "Accuracy: " << resultsSparse.percentageDifference(groundTruth) << endl;
+    //resultsSparse.printMatrix(1);
 
     return 0;
 }
