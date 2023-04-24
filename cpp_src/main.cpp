@@ -7,6 +7,7 @@
 #include "CSR_sparse.h"
 #include "models.h"
 #include "block4in16_sparse.h"
+#include "blockKinN_sparse.h"
 
 using namespace std;
 using namespace Matrix;
@@ -50,27 +51,31 @@ int main(int argc, char *argv[])
 //
     //result.printMatrix(7);
 
-    Dense groundTruth("datasets/mnist_y_test.csv", COLUMN_MAJOR);
+    BlockKinMSparse<4, 16, 1024, 1024, ROW_MAJOR> testMat("weights/weights_l0.csv");
+    testMat.printMatrix(7);
+    //testMat.printRow(0);
+    //cout << endl;
+    //testMat.printCompressed();
 
-    Dense input("datasets/mnist_X_test_T.csv", COLUMN_MAJOR);
-    Mnist32x32_4L model("weights/weights_", "weights/biases_");
-    auto start = chrono::high_resolution_clock::now();
-    Dense output = model.predict(input);
-    auto end = chrono::high_resolution_clock::now();
-    cerr << "Time of prediction: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
-    Dense results = output.argmax(0);
-    cerr << "Accuracy: " << results.percentageDifference(groundTruth) << endl;
-    //results.printMatrix(1);
-
-    Dense inputSparse("datasets/mnist_X_test_T.csv", COLUMN_MAJOR);
-    Mnist32x32_4L_4in16Sparse modelSparse("weights/weights_", "weights/biases_");
-    start = chrono::high_resolution_clock::now();
-    Dense outputSparse = modelSparse.predict(inputSparse);
-    end = chrono::high_resolution_clock::now();
-    cerr << "Time of prediction: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
-    Dense resultsSparse = outputSparse.argmax(0);
-    cerr << "Accuracy: " << resultsSparse.percentageDifference(groundTruth) << endl;
-    //resultsSparse.printMatrix(1);
+    //Dense groundTruth("datasets/mnist_y_test.csv", COLUMN_MAJOR);
+//
+    //Dense input("datasets/mnist_X_test_T.csv", COLUMN_MAJOR);
+    //Mnist32x32_4L model("weights/weights_", "weights/biases_");
+    //auto start = chrono::high_resolution_clock::now();
+    //Dense output = model.predict(input);
+    //auto end = chrono::high_resolution_clock::now();
+    //cerr << "Time of prediction: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
+    //Dense results = output.argmax(0);
+    //cerr << "Accuracy: " << results.percentageDifference(groundTruth) << endl;
+    //
+    //Dense inputSparse("datasets/mnist_X_test_T.csv", COLUMN_MAJOR);
+    //Mnist32x32_4L_4in16Sparse modelSparse("weights/weights_", "weights/biases_");
+    //start = chrono::high_resolution_clock::now();
+    //Dense outputSparse = modelSparse.predict(inputSparse);
+    //end = chrono::high_resolution_clock::now();
+    //cerr << "Time of prediction: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
+    //Dense resultsSparse = outputSparse.argmax(0);
+    //cerr << "Accuracy: " << resultsSparse.percentageDifference(groundTruth) << endl;
 
     return 0;
 }

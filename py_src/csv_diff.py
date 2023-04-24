@@ -37,7 +37,7 @@ if __name__ == "__main__":
     parser.add_argument("file1", help="Path to the first CSV file")
     parser.add_argument("file2", help="Path to the second CSV file")
     parser.add_argument("-e", "--epsilon", type=float, default=0.01, help="Tolerance value for comparing elements")
-    parser.add_argument("-p", "--print", type=bool, default=False, help="Print the different elements")
+    parser.add_argument("-p", "--print", action="store_true", help="Print the different elements")
 
     args = parser.parse_args()
 

@@ -10,10 +10,6 @@ namespace Matrix
     class Block4in16Sparse : public Sparse
     {
         private:
-            uint32_t _nonZeroEntries = 0;
-            uint16_t *_columnIndices;
-            float *_dataMatrix;
-
             void allocateSpaceRowMajorCSV(std::ifstream &file) override;
             void allocateSpaceColumnMajorCSV(std::ifstream &file) override;
             void loadDataRowMajorCSV(std::ifstream &file) override;

@@ -33,7 +33,7 @@ void Block4in16Sparse::allocateSpaceRowMajorCSV(ifstream &file)
     _rows = count(istreambuf_iterator<char>(file), istreambuf_iterator<char>(), '\n') + 1;
     _columns += (16 - (_columns & 15)) * ((_columns & 15) != 0);  // pad columns to 16
     _rows += (16 - (_rows & 15)) * ((_rows & 15) != 0);           // pad rows to 16
-    _size = (_columns * _rows * sizeof(float) >> 2) + _columns * _rows * sizeof(uint8_t);
+    _size = (_columns * _rows * sizeof(float) >> 2) + (_columns * _rows * sizeof(uint8_t) >> 2);
     _byteMatrix = new(align_val_t{16}) byte[_size](); // allocate aligned memory to 16 bytes to allow AVX/NEON instructions
 }
 
@@ -135,7 +135,6 @@ void Block4in16Sparse::loadDataRowMajorCSV(ifstream &file)
             byteMatrices[i] = byteMatrices[i] + (_columns * sizeof(float) + _columns) * 3;
         } 
     }
-
 }
 
 void Block4in16Sparse::loadDataColumnMajorCSV(ifstream &file)

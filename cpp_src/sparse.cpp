@@ -3,10 +3,9 @@
 using namespace std;
 using namespace Matrix;
 
-Sparse::Sparse(DimensionMajorityEnum dimMajority) : Base(dimMajority)
-{
+Sparse::Sparse(DimensionMajorityEnum dimMajority) : Base(dimMajority) { }
 
-}
+Sparse::Sparse(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority) : Base(rows, columns, dimMajority) { }
 
 void Sparse::loadCSV(string fileName)
 {
