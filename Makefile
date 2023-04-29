@@ -1,7 +1,7 @@
 CC = g++-11
 NVCC = nvcc
-CFLAGS = -std=c++20 -Wall -Wextra -MMD -g #-O3
-NVCCLAGS = --std=c++11 -MMD #-O3 
+CFLAGS = -std=c++20 -Wall -Wextra -Wno-deprecated -Wno-deprecated-declarations -MMD -O3
+NVCCLAGS = --std=c++11 -MMD -g -O3 
 LDFLAGS = -mavx -mfma -L/usr/local/cuda-10.2/lib64/ -lcuda -lcudart -lcublas_static -lcublasLt_static -lculibos
 DEPLOY_DIR = sparse_android_ML/app/src/main/cpp/copied
 SRC_DIR = cpp_src

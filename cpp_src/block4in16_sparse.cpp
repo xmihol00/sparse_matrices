@@ -319,7 +319,7 @@ void Block4in16Sparse::dot(Dense &operandMatrix, Dense &targetMatrix)
                         column += 16;
                     }
 
-                    #pragma unroll
+                    #pragma GCC unroll 16
                     for (uint8_t k = 0; k < 16; k++)
                     {
                         target[k] += accumulators[k];
@@ -334,7 +334,7 @@ void Block4in16Sparse::dot(Dense &operandMatrix, Dense &targetMatrix)
 Dense Block4in16Sparse::dot(Dense &operandMatrix)
 {
     Dense targetMatrix(_rows, operandMatrix._columns, COLUMN_MAJOR);
-    dot1(operandMatrix, targetMatrix);
+    dot(operandMatrix, targetMatrix);
 
     return targetMatrix;
 }
@@ -408,7 +408,7 @@ void Block4in16Sparse::dot1(Dense &operandMatrix, Dense &targetMatrix)
 Dense Block4in16Sparse::dot1(Dense &operandMatrix)
 {
     Dense targetMatrix(_rows, operandMatrix._columns, COLUMN_MAJOR);
-    dot(operandMatrix, targetMatrix);
+    dot1(operandMatrix, targetMatrix);
 
     return targetMatrix;
 }
@@ -435,7 +435,7 @@ void Block4in16Sparse::dot2(Dense &operandMatrix, Dense &targetMatrix)
                     float *column = operandMatrix._floatMatrix + i * operandMatrix._rows;
                     for (uint16_t k = 0; k < _columns >> 4; k++)
                     {
-                        #pragma unroll
+                        #pragma GCC unroll 16
                         for (uint8_t l = 0; l < 16; l += 4)
                         {
                             float32x4_t a = vld1q_f32(row + l);
@@ -443,7 +443,7 @@ void Block4in16Sparse::dot2(Dense &operandMatrix, Dense &targetMatrix)
 
                             float32x4_t result = vmulq_f32(a, b);
 
-                            #pragma unroll
+                            #pragma GCC unroll 4
                             for (uint8_t m = 0; m < 4; m++)
                             {
                                 switch (indices[m])
@@ -507,7 +507,7 @@ void Block4in16Sparse::dot2(Dense &operandMatrix, Dense &targetMatrix)
                         column += 16;
                     }
 
-                    #pragma unroll
+                    #pragma GCC unroll 16
                     for (uint8_t k = 0; k < 16; k++)
                     {
                         target[k] += accumulators[k];

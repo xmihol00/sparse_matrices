@@ -59,8 +59,7 @@ Mnist32x32_4L_4in16Sparse::Mnist32x32_4L_4in16Sparse(string weightsFileTemplate,
       B2{biasesFileTemplate + "l2.csv", COLUMN_MAJOR},
       B3{biasesFileTemplate + "l3.csv", COLUMN_MAJOR},
       B4{biasesFileTemplate + "l4.csv", COLUMN_MAJOR}
-{
-}
+{ }
 
 void Mnist32x32_4L_4in16Sparse::predict(Matrix::Dense &input, Matrix::Dense &output)
 {

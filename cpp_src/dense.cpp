@@ -4,7 +4,7 @@
 using namespace std;
 using namespace Matrix;
 
-Dense::Dense(string fileName, DimensionMajorityEnum dimMajority) : Base(dimMajority) 
+Dense::Dense(string fileName, DimensionMajorityEnum dimMajority, uint16_t bytePadding) : Base(dimMajority), _bytePadding{bytePadding}
 {
     if (fileName.ends_with(".csv"))
     {
@@ -25,15 +25,25 @@ Dense::Dense(string fileName, DimensionMajorityEnum dimMajority) : Base(dimMajor
     }
 }
 
-Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, std::byte *data) : Base(rows, columns, dimMajority)
+Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, uint16_t bytePadding, std::byte *data) : 
+    Base(rows, columns, dimMajority), _bytePadding{bytePadding}
 {
-    _byteMatrix = new byte[_size]();
+    _byteMatrix = new byte[_size + _bytePadding]();
 
     if (data != nullptr)
     {
         memcpy(_byteMatrix, data, _size);
     }
 }
+
+Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority) : 
+    Dense(rows, columns, dimMajority, 0, nullptr) {}
+
+Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, uint16_t bytePadding) : 
+    Dense(rows, columns, dimMajority, bytePadding, nullptr) {}
+
+Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, std::byte *data) :
+    Dense(rows, columns, dimMajority, 0, data) {}
 
 void Dense::loadCSV(string fileName)
 {
@@ -45,7 +55,7 @@ void Dense::loadCSV(string fileName)
         _columns = count(row.begin(), row.end(), ',') + 1;
         _rows = count(istreambuf_iterator<char>(file), istreambuf_iterator<char>(), '\n') + 1;
         _size = _columns * _rows * sizeof(float);
-        _byteMatrix = new byte[_size]();
+        _byteMatrix = new byte[_size + _bytePadding]();
         
         file.clear();
         file.seekg(0);

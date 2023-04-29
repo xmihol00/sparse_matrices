@@ -1,17 +1,17 @@
 #ifndef BLOCKKINN_SPARSE_H
 #define BLOCKKINN_SPARSE_H
 
-#include "sparse.h"
+#include "base.h"
 #include "arm_neon_.h"
 
 namespace Matrix 
 {
     template <uint8_t K, uint8_t N, uint16_t denseRows, uint16_t denseColumns, DimensionMajorityEnum dimMajority>
-    class BlockKinMSparse : public Sparse
+    class BlockKinNSparse : public Sparse
     {
         private:
-            uint16_t _compressedDimension;
-            uint16_t _alignedColumns;
+            const uint16_t _compressedDimension;
+            const uint16_t _alignedColumns;
 
             void allocateSpaceRowMajorCSV(std::ifstream &file)
             {
@@ -41,7 +41,7 @@ namespace Matrix
                 uint8_t *byteMatrices[K];
 
                 string cell;
-                uint8_t indices[K];
+                uint8_t indices[4];
                 for (uint16_t i = 0; i < (_rows + N - 1) / N; i++)
                 {
                     floatMatrices[0] = _floatMatrix + i * K * (_alignedColumns + _alignedColumns / sizeof(float));
@@ -74,7 +74,7 @@ namespace Matrix
 
                     for (uint16_t j = 0; j < _columns >> 2; j++)
                     {
-                        for (uint8_t k = 0; k < K; k++)
+                        for (uint8_t k = 0; k < 4; k++)
                         {
                             indices[k] = 0;
                         }
@@ -130,29 +130,22 @@ namespace Matrix
             }
         
         public:
-            BlockKinMSparse() = default;
-            BlockKinMSparse(std::string fileName) : Sparse(denseRows, denseColumns, dimMajority)
+            BlockKinNSparse() = default;
+            BlockKinNSparse(std::string fileName) : Sparse(denseRows, denseColumns, dimMajority), 
+                                                    _compressedDimension{dimMajority == COLUMN_MAJOR ? 
+                                                                         ((denseColumns + N - 1) / N) * K : 
+                                                                         ((denseRows + N - 1) / N) * K},
+                                                    _alignedColumns{denseColumns + (16 - (denseColumns & 15)) * ((_columns & 15) != 0)}
             {
                 using namespace std;
 
                 static_assert(dimMajority != FILE_DETERMINED, "dimension majority must be specified");
                 static_assert(dimMajority != COLUMN_MAJOR || !(denseRows & 3), "rows must be a multiple of 4");
                 static_assert(dimMajority != ROW_MAJOR || !(denseColumns & 3), "columns must be a multiple of 4");
-        
-                if (dimMajority == COLUMN_MAJOR)
-                {
-                    _compressedDimension = ((denseColumns + N - 1) / N) * K;
-                }
-                else if (dimMajority == ROW_MAJOR)
-                {
-                    _compressedDimension = ((denseRows + N - 1) / N) * K;
-                }
-
-                _alignedColumns = denseColumns + (16 - (denseColumns & 15)) * ((denseColumns & 15) != 0);
-        
+                
                 loadCSV(fileName);
             }
-            ~BlockKinMSparse() = default;
+            ~BlockKinNSparse() = default;
 
             void printCompressed(uint8_t precision = 7)
             {
@@ -268,6 +261,78 @@ namespace Matrix
             virtual void saveAsCSV(std::string fileName)
             {
                 (void)fileName;
+            }
+
+            void dot(Dense &operandMatrix, Dense &targetMatrix)
+            {
+                const uint16_t rowBlocks = _compressedDimension / K;
+                const uint16_t columnBlocks = denseColumns >> 4;
+                float accumulators[N] = { 0.0f, };
+                float *target = targetMatrix._floatMatrix;
+                float *column = operandMatrix._floatMatrix;
+
+                if (_dimMajority == ROW_MAJOR)
+                {
+                    const uint16_t targetPadding = rowBlocks * N - denseRows;
+                    if (operandMatrix._dimMajority == COLUMN_MAJOR)
+                    {
+                        for (uint16_t i = 0; i < operandMatrix._columns; i++)
+                        {
+                            float *row = _floatMatrix;
+                            uint8_t *indices = _uint8Matrix + 16 * sizeof(float);
+                            
+                            for (uint16_t j = 0; j < rowBlocks; j++)
+                            {
+                                for (uint8_t k = 0; k < K; k++)
+                                {
+                                    #pragma GCC unroll 16
+                                    for (uint16_t l = 0; l < columnBlocks; l++)
+                                    {
+                                        #pragma GCC unroll 4
+                                        for (uint8_t m = 0; m < 4; m++)
+                                        {
+                                            float32x4_t a = vld1q_f32(row);
+                                            float32x4_t b = vld1q_f32(column);
+                                            a = vmulq_f32(a, b);
+
+                                            #pragma GCC unroll 4
+                                            for (uint8_t n = 0; n < 4; n++)
+                                            {
+                                                accumulators[indices[n]] += a[n];
+                                            }
+
+                                            row += 4;
+                                            indices += 4;
+                                            column += 4;
+                                        }
+
+                                        row += 16 / sizeof(float);
+                                        indices += 16 * sizeof(float);
+                                    }
+                                    column -= operandMatrix._rows;
+                                }
+
+                                #pragma GCC ivdep
+                                for (uint8_t k = 0; k < N; k++)
+                                {
+                                    target[k] += accumulators[k];
+                                    accumulators[k] = 0.0f;
+                                }
+                                target += N;
+                            }
+                            target -= targetPadding;
+                            column += operandMatrix._rows;
+                        }
+                    }
+                }
+            }
+
+            Dense dot(Dense &operandMatrix)
+            {
+                Dense targetMatrix(_rows, operandMatrix._columns, COLUMN_MAJOR);
+                dot(operandMatrix, targetMatrix);
+
+                return targetMatrix;
             }
     };
 }

@@ -1,6 +1,6 @@
 
 /*template <uint8_t K, uint8_t N, uint16_t denseRows, uint16_t denseColumns, DimensionMajorityEnum dimMajority>
-BlockKinMSparse<K, N, denseRows, denseColumns, dimMajority>::BlockKinMSparse(std::string fileName) : Sparse(dimMajority)
+BlockKinNSparse<K, N, denseRows, denseColumns, dimMajority>::BlockKinNSparse(std::string fileName) : Sparse(dimMajority)
 {
     static_assert(dimMajority != FILE_DETERMINED, "dimension majority must be specified");
     static_assert(dimMajority != COLUMN_MAJOR || !(denseRows & 3), "rows must be a multiple of 4");
@@ -19,21 +19,21 @@ BlockKinMSparse<K, N, denseRows, denseColumns, dimMajority>::BlockKinMSparse(std
 }
 
 template <uint8_t K, uint8_t N, uint16_t denseRows, uint16_t denseColumns, DimensionMajorityEnum dimMajority>
-void BlockKinMSparse<K, N, denseRows, denseColumns, dimMajority>::allocateSpaceRowMajorCSV(ifstream &file)
+void BlockKinNSparse<K, N, denseRows, denseColumns, dimMajority>::allocateSpaceRowMajorCSV(ifstream &file)
 {
     _size = (_columns + (16 - (_columns & 15)) * ((_columns & 15) != 0)) * compressedDimension * (sizeof(float) + sizeof(uint8_t));
     _byteMatrix = new(align_val_t{16}) byte[_size](); // allocate aligned memory to 16 bytes to allow AVX/NEON instructions
 }
 
 template <uint8_t K, uint8_t N, uint16_t denseRows, uint16_t denseColumns, DimensionMajorityEnum dimMajority>
-void BlockKinMSparse<K, N, denseRows, denseColumns, dimMajority>::allocateSpaceColumnMajorCSV(ifstream &file)
+void BlockKinNSparse<K, N, denseRows, denseColumns, dimMajority>::allocateSpaceColumnMajorCSV(ifstream &file)
 {
     _size = (_rows + (16 - (_rows & 15)) * ((_rows & 15) != 0)) * compressedDimension * (sizeof(float) + sizeof(uint8_t));
     _byteMatrix = new(align_val_t{16}) byte[_size](); // allocate aligned memory to 16 bytes to allow AVX/NEON instructions
 }
 
 template <uint8_t K, uint8_t N, uint16_t denseRows, uint16_t denseColumns, DimensionMajorityEnum dimMajority>
-void BlockKinMSparse<K, N, denseRows, denseColumns, dimMajority>::loadDataRowMajorCSV(ifstream &file)
+void BlockKinNSparse<K, N, denseRows, denseColumns, dimMajority>::loadDataRowMajorCSV(ifstream &file)
 {
     // variables for loading 16 rows at a time
     string rows[N];
