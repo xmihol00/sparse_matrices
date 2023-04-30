@@ -1,7 +1,6 @@
 #ifndef BLOCK4IN16_SPARSE_H
 #define BLOCK4IN16_SPARSE_H
 
-#include "base.h"
 #include "sparse.h"
 #include "dense.h"
 

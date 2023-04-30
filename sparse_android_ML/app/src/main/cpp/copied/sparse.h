@@ -17,6 +17,7 @@ namespace Matrix
         public:
             Sparse() = default;
             Sparse(DimensionMajorityEnum dimMajority);
+            Sparse(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority);
             ~Sparse() = default;
     };
 }

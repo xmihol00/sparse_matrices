@@ -51,6 +51,12 @@
         "cstring": "cpp",
         "optional": "cpp",
         "bitset": "cpp",
-        "chrono": "cpp"
+        "chrono": "cpp",
+        "codecvt": "cpp",
+        "complex": "cpp",
+        "map": "cpp",
+        "cinttypes": "cpp",
+        "ratio": "cpp",
+        "thread": "cpp"
     },
 }

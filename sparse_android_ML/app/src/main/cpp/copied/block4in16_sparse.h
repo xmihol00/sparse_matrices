@@ -1,9 +1,11 @@
 #ifndef BLOCK4IN16_SPARSE_H
 #define BLOCK4IN16_SPARSE_H
 
-#include "base.h"
 #include "sparse.h"
 #include "dense.h"
+#include "../arm_neon_.h"
+//#include <arm_neon.h>
+
 
 namespace Matrix 
 {

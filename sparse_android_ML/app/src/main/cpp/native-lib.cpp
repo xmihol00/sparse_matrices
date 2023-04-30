@@ -1,7 +1,7 @@
 #include <jni.h>
 #include <string>
-#include <arm_neon.h>
-//#include "arm_neon_.h"
+//#include <arm_neon.h>
+#include "arm_neon_.h"
 #include <chrono>
 #include <filesystem>
 #include <iostream>
@@ -140,21 +140,49 @@ Java_com_example_sparseandroidml_MainActivity_stringFromJNI(
     //    input_file.close();
     //}
 
+    Models::Mnist32x32_4L_KinMSparse<4, 16> sparseModel1(path + "/weights_", path + "/biases_");
+    Matrix::Dense inputSparse1(path + "/mnist_X_test_T.csv", Matrix::COLUMN_MAJOR);
+    auto start = now();
+    Matrix::Dense outputSparse1 = sparseModel1.predict(inputSparse1);
+    Matrix::Dense resultsSparse1 = outputSparse1.argmax(0);
+    auto elapsedTime = msElapsedTime(start);
+    std::string resultsString = "Elapsed time sparse 4 in 16: " + to_string((int) elapsedTime) + " ms\n";
+    sparseModel1.~Mnist32x32_4L_KinMSparse();
+    inputSparse1.~Dense();
+    outputSparse1.~Dense();
+    resultsSparse1.~Dense();
+
+    Models::Mnist32x32_4L_4in16Sparse sparseModel2(path + "/weights_", path + "/biases_");
+    Matrix::Dense inputSparse2(path + "/mnist_X_test_T.csv", Matrix::COLUMN_MAJOR);
+    start = now();
+    Matrix::Dense outputSparse2 = sparseModel2.predict(inputSparse2);
+    Matrix::Dense resultsSparse2 = outputSparse2.argmax(0);
+    elapsedTime = msElapsedTime(start);
+    resultsString += "Elapsed time sparse 4 in 16: " + to_string((int) elapsedTime) + " ms\n";
+    sparseModel2.~Mnist32x32_4L_4in16Sparse();
+    inputSparse2.~Dense();
+    outputSparse2.~Dense();
+    resultsSparse2.~Dense();
+
+    Models::Mnist32x32_4L_KinMSparse<2, 16> sparseModel3(path + "/weights_", path + "/biases_");
+    Matrix::Dense inputSparse3(path + "/mnist_X_test_T.csv", Matrix::COLUMN_MAJOR);
+    start = now();
+    Matrix::Dense outputSparse3 = sparseModel3.predict(inputSparse3);
+    Matrix::Dense resultsSparse3 = outputSparse3.argmax(0);
+    elapsedTime = msElapsedTime(start);
+    resultsString += "Elapsed time sparse 2 in 16: " + to_string((int) elapsedTime) + " ms\n";
+    sparseModel3.~Mnist32x32_4L_KinMSparse();
+    inputSparse3.~Dense();
+    outputSparse3.~Dense();
+    resultsSparse3.~Dense();
+
     Models::Mnist32x32_4L model(path + "/weights_", path + "/biases_");
     Matrix::Dense input(path + "/mnist_X_test_T.csv", Matrix::COLUMN_MAJOR);
-    auto start = now();
+    start = now();
     Matrix::Dense output = model.predict(input);
     Matrix::Dense results = output.argmax(0);
-    auto elapsedTime = msElapsedTime(start);
-    std::string resultsString = "Elapsed time dense: " + to_string((int) elapsedTime) + " ms\n";
-
-    Models::Mnist32x32_4L_4in16Sparse sparseModel(path + "/weights_", path + "/biases_");
-    Matrix::Dense inputSparse(path + "/mnist_X_test_T.csv", Matrix::COLUMN_MAJOR);
-    start = now();
-    Matrix::Dense outputSparse = sparseModel.predict(inputSparse);
-    Matrix::Dense resultsSparse = outputSparse.argmax(0);
     elapsedTime = msElapsedTime(start);
-    resultsString += "Elapsed time sparse: " + to_string((int) elapsedTime) + " ms";
+    resultsString += "Elapsed time dense: " + to_string((int) elapsedTime) + " ms\n";
 
     return env->NewStringUTF(resultsString.c_str());
 }

@@ -57,8 +57,9 @@ class MainActivity : AppCompatActivity() {
         for (filename in filenames)
         {
             val outFile = File(filesDir, filename)
-
-            if (!outFile.exists()) {
+            
+            if (true) //(!outFile.exists())
+            {
                 try {
                     assetManager.open(filename).use { inputStream ->
                         FileOutputStream(outFile).use { outputStream ->

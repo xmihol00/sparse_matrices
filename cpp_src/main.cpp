@@ -13,33 +13,22 @@ using namespace std;
 using namespace Matrix;
 using namespace Models;
 
-const char DEFAULT_FILENAME[] = "generated_matrices/0.75_saparse.csv";
-
-int main(int argc, char *argv[])
+int main()
 {   
-    const char *fileName;
-    if (argc > 1)
-    {
-        fileName = argv[1];        
-    }
-    else
-    {
-        fileName = DEFAULT_FILENAME;
-    }
-
 #define MUL_TEST 0
 #if MUL_TEST
-    //Block4in16Sparse rowMat = Block4in16Sparse("weights/weights_l0.csv", ROW_MAJOR);
     //Dense rowMat = Dense("weights/weights_l0.csv", ROW_MAJOR);
+    //Block4in16Sparse rowMat = Block4in16Sparse("weights/weights_l0.csv", ROW_MAJOR);
     BlockKinNSparse<4, 16, 1024, 1024, ROW_MAJOR> rowMat("weights/weights_l0.csv");
     Dense colMat = Dense("generated_matrices/random.csv", COLUMN_MAJOR);
     Dense result(rowMat.getRows(), colMat.getColumns(), COLUMN_MAJOR, 9 * sizeof(float));
     
     // measure time of multiplication
     auto start = chrono::high_resolution_clock::now();
-    rowMat.dot(colMat, result);
+    rowMat.dotThreads(colMat, result);
     auto end = chrono::high_resolution_clock::now();
     cerr << "Time of multiplication: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
+
     result.printMatrix(7);
 #endif
 
@@ -73,6 +62,15 @@ int main(int argc, char *argv[])
     cerr << "Time of prediction: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
     Dense resultsSparse2 = outputSparse2.argmax(0);
     cerr << "Accuracy: " << resultsSparse2.percentageDifference(groundTruth) << endl;
+
+    Dense inputSparse3("datasets/mnist_X_test_T.csv", COLUMN_MAJOR);
+    Mnist32x32_4L_KinMSparse<4, 16> modelSparse3("weights/weights_", "weights/biases_");
+    start = chrono::high_resolution_clock::now();
+    Dense outputSparse3 = modelSparse3.predictThreads(inputSparse3);
+    end = chrono::high_resolution_clock::now();
+    cerr << "Time of prediction: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
+    Dense resultsSparse3 = outputSparse3.argmax(0);
+    cerr << "Accuracy: " << resultsSparse3.percentageDifference(groundTruth) << endl;
 #endif
 
     return 0;

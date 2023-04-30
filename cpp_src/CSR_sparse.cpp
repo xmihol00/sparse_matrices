@@ -104,7 +104,8 @@ void CSRSparse::loadBinary(std::string fileName)
 
 void CSRSparse::printColumn(uint16_t columnIndex, uint8_t precision)
 {
-
+    (void)columnIndex;
+    (void)precision;
 }
 
 void CSRSparse::printRow(uint16_t rowIndex, uint8_t precision)
@@ -146,12 +147,12 @@ void CSRSparse::printRow(uint16_t rowIndex, uint8_t precision)
 
 void CSRSparse::saveAsBinary(std::string fileName)
 {
-
+    (void)fileName;
 }
 
 void CSRSparse::saveAsCSV(std::string fileName)
 {
-
+    (void)fileName;
 }
 
 void CSRSparse::dot(Dense &operandMatrix, Dense &targetMatrix)

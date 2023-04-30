@@ -1,6 +1,4 @@
 #include "block4in16_sparse.h"
-//#include "../arm_neon_.h"
-#include <arm_neon.h>
 
 using namespace std;
 using namespace Matrix;
