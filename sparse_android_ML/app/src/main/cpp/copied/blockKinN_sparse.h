@@ -1,9 +1,11 @@
 #ifndef BLOCKKINN_SPARSE_H
 #define BLOCKKINN_SPARSE_H
 
+#include <thread>
+
 #include "sparse.h"
-//#include <arm_neon.h>
-#include "../arm_neon_.h"
+#include <arm_neon.h>
+//#include "../arm_neon_.h"
 
 namespace Matrix 
 {
@@ -16,6 +18,7 @@ namespace Matrix
 
             void allocateSpaceRowMajorCSV(std::ifstream &file)
             {
+                (void)file;
                 using namespace std;
 
                 _size = (_columns + (16 - (_columns & 15)) * ((_columns & 15) != 0)) * _compressedDimension * (sizeof(float) + sizeof(uint8_t));
@@ -24,6 +27,7 @@ namespace Matrix
 
             void allocateSpaceColumnMajorCSV(std::ifstream &file)
             {
+                (void)file;
                 using namespace std;
 
                 _size = (_rows + (16 - (_rows & 15)) * ((_rows & 15) != 0)) * _compressedDimension * (sizeof(float) + sizeof(uint8_t));
@@ -128,6 +132,76 @@ namespace Matrix
             void loadBinary(std::string fileName)
             {
                 (void)fileName;
+            }
+
+            void dotPart(Dense &operandMatrix, Dense &targetMatrix, uint8_t threadCount, uint8_t threadId)
+            {
+                float accumulators[N] = { 0.0f, };
+
+                if (_dimMajority == ROW_MAJOR)
+                {
+                    const uint16_t rowBlocks = _compressedDimension / K / threadCount;
+                    const uint32_t operandOffset = _compressedDimension / threadCount * (_columns + _columns / sizeof(float)) * threadId;
+                    const uint16_t targetOffset = targetMatrix._rows / threadCount * threadId;
+                    const int16_t targetPadding = denseRows - _compressedDimension / K * N + targetMatrix._rows - targetMatrix._rows / threadCount;
+                    const uint16_t columnBlocks = denseColumns >> 4;
+
+                    float *target = targetMatrix._floatMatrix + targetOffset;
+                    float *column = operandMatrix._floatMatrix;
+                    float *offsetedRow = _floatMatrix + operandOffset;
+                    uint8_t *offsetedIndices = _uint8Matrix + (operandOffset + 16) * sizeof(float);
+
+                    if (operandMatrix._dimMajority == COLUMN_MAJOR)
+                    {
+                        for (uint16_t i = 0; i < operandMatrix._columns; i++)
+                        {
+                            float *row = offsetedRow;
+                            uint8_t *indices = offsetedIndices;
+                            
+                            for (uint16_t j = 0; j < rowBlocks; j++)
+                            {
+                                for (uint8_t k = 0; k < K; k++)
+                                {
+                                    #pragma GCC unroll 16
+                                    for (uint16_t l = 0; l < columnBlocks; l++)
+                                    {
+                                        #pragma GCC unroll 4
+                                        for (uint8_t m = 0; m < 4; m++)
+                                        {
+                                            float32x4_t a = vld1q_f32(row);
+                                            float32x4_t b = vld1q_f32(column);
+                                            a = vmulq_f32(a, b);
+
+                                            #pragma GCC unroll 4
+                                            for (uint8_t n = 0; n < 4; n++)
+                                            {
+                                                accumulators[indices[n]] += a[n];
+                                            }
+
+                                            row += 4;
+                                            indices += 4;
+                                            column += 4;
+                                        }
+
+                                        row += 16 / sizeof(float);
+                                        indices += 16 * sizeof(float);
+                                    }
+                                    column -= operandMatrix._rows;
+                                }
+
+                                #pragma GCC ivdep
+                                for (uint8_t k = 0; k < N; k++)
+                                {
+                                    target[k] = accumulators[k];
+                                    accumulators[k] = 0.0f;
+                                }
+                                target += N;
+                            }
+                            target += targetPadding;
+                            column += operandMatrix._rows;
+                        }
+                    }
+                }
             }
         
         public:
@@ -266,72 +340,38 @@ namespace Matrix
 
             void dot(Dense &operandMatrix, Dense &targetMatrix)
             {
-                const uint16_t rowBlocks = _compressedDimension / K;
-                const uint16_t columnBlocks = denseColumns >> 4;
-                float accumulators[N] = { 0.0f, };
-                float *target = targetMatrix._floatMatrix;
-                float *column = operandMatrix._floatMatrix;
-
-                if (_dimMajority == ROW_MAJOR)
-                {
-                    const uint16_t targetPadding = rowBlocks * N - denseRows;
-                    if (operandMatrix._dimMajority == COLUMN_MAJOR)
-                    {
-                        for (uint16_t i = 0; i < operandMatrix._columns; i++)
-                        {
-                            float *row = _floatMatrix;
-                            uint8_t *indices = _uint8Matrix + 16 * sizeof(float);
-                            
-                            for (uint16_t j = 0; j < rowBlocks; j++)
-                            {
-                                for (uint8_t k = 0; k < K; k++)
-                                {
-                                    #pragma GCC unroll 16
-                                    for (uint16_t l = 0; l < columnBlocks; l++)
-                                    {
-                                        #pragma GCC unroll 4
-                                        for (uint8_t m = 0; m < 4; m++)
-                                        {
-                                            float32x4_t a = vld1q_f32(row);
-                                            float32x4_t b = vld1q_f32(column);
-                                            a = vmulq_f32(a, b);
-
-                                            #pragma GCC unroll 4
-                                            for (uint8_t n = 0; n < 4; n++)
-                                            {
-                                                accumulators[indices[n]] += a[n];
-                                            }
-
-                                            row += 4;
-                                            indices += 4;
-                                            column += 4;
-                                        }
-
-                                        row += 16 / sizeof(float);
-                                        indices += 16 * sizeof(float);
-                                    }
-                                    column -= operandMatrix._rows;
-                                }
-
-                                #pragma GCC ivdep
-                                for (uint8_t k = 0; k < N; k++)
-                                {
-                                    target[k] += accumulators[k];
-                                    accumulators[k] = 0.0f;
-                                }
-                                target += N;
-                            }
-                            target -= targetPadding;
-                            column += operandMatrix._rows;
-                        }
-                    }
-                }
+                dotPart(operandMatrix, targetMatrix, 1, 0);
             }
-
+            
             Dense dot(Dense &operandMatrix)
             {
                 Dense targetMatrix(_rows, operandMatrix._columns, COLUMN_MAJOR);
                 dot(operandMatrix, targetMatrix);
+
+                return targetMatrix;
+            }
+
+            void dotThreads(Dense &operandMatrix, Dense &targetMatrix)
+            {
+                using namespace std;
+                
+                const uint8_t numThreads = 8;
+                thread threads[numThreads];
+                for (uint8_t i = 0; i < numThreads; i++)
+                {
+                    threads[i] = thread(&BlockKinNSparse::dotPart, this, ref(operandMatrix), ref(targetMatrix), numThreads, i);
+                }
+
+                for (uint8_t i = 0; i < numThreads; i++)
+                {
+                    threads[i].join();
+                }
+            }
+
+            Dense dotThreads(Dense &operandMatrix)
+            {
+                Dense targetMatrix(_rows, operandMatrix._columns, COLUMN_MAJOR);
+                dotThreads(operandMatrix, targetMatrix);
 
                 return targetMatrix;
             }

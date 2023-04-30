@@ -117,6 +117,39 @@ namespace Models
                 predict(input, output);
                 return output;
             }
+
+            void predictThreads(Matrix::Dense &input, Matrix::Dense &output)
+            {
+                using namespace Matrix;
+                
+                Dense tmp = W0.dotThreads(input);
+                tmp.add(B0);
+                tmp.ReLU();
+                
+                W1.dotThreads(tmp, input);
+                input.add(B1);
+                input.ReLU();
+            
+                W2.dotThreads(input, tmp);
+                tmp.add(B2);
+                tmp.ReLU();
+            
+                W3.dotThreads(tmp, input);
+                input.add(B3);
+                input.ReLU();
+            
+                W4.dot(input, output);
+                output.add(B4);
+            }
+
+            Matrix::Dense predictThreads(Matrix::Dense &input)
+            {
+                using namespace Matrix;
+
+                Dense output(B4.getRows(), input.getColumns(), COLUMN_MAJOR);
+                predictThreads(input, output);
+                return output;
+            }
     };
 }
 

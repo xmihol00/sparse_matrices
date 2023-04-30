@@ -1,7 +1,7 @@
 #include <jni.h>
 #include <string>
-//#include <arm_neon.h>
-#include "arm_neon_.h"
+#include <arm_neon.h>
+//#include "arm_neon_.h"
 #include <chrono>
 #include <filesystem>
 #include <iostream>
@@ -175,6 +175,18 @@ Java_com_example_sparseandroidml_MainActivity_stringFromJNI(
     inputSparse3.~Dense();
     outputSparse3.~Dense();
     resultsSparse3.~Dense();
+
+    Models::Mnist32x32_4L_KinMSparse<2, 16> sparseModel4(path + "/weights_", path + "/biases_");
+    Matrix::Dense inputSparse4(path + "/mnist_X_test_T.csv", Matrix::COLUMN_MAJOR);
+    start = now();
+    Matrix::Dense outputSparse4 = sparseModel4.predictThreads(inputSparse4);
+    Matrix::Dense resultsSparse4 = outputSparse4.argmax(0);
+    elapsedTime = msElapsedTime(start);
+    resultsString += "Elapsed time sparse 2 in 16 threads: " + to_string((int) elapsedTime) + " ms\n";
+    sparseModel4.~Mnist32x32_4L_KinMSparse();
+    inputSparse4.~Dense();
+    outputSparse4.~Dense();
+    resultsSparse4.~Dense();
 
     Models::Mnist32x32_4L model(path + "/weights_", path + "/biases_");
     Matrix::Dense input(path + "/mnist_X_test_T.csv", Matrix::COLUMN_MAJOR);

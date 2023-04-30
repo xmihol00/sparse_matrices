@@ -3,8 +3,8 @@
 
 #include "sparse.h"
 #include "dense.h"
-#include "../arm_neon_.h"
-//#include <arm_neon.h>
+//#include "../arm_neon_.h"
+#include <arm_neon.h>
 
 
 namespace Matrix 
