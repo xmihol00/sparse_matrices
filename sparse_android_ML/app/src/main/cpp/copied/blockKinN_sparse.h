@@ -4,8 +4,11 @@
 #include <thread>
 
 #include "sparse.h"
-#include <arm_neon.h>
-//#include "../arm_neon_.h"
+#if PHONE
+    #include <arm_neon.h>
+#else
+    #include "arm_neon_.h"
+#endif
 
 namespace Matrix 
 {
@@ -205,7 +208,8 @@ namespace Matrix
             }
         
         public:
-            BlockKinNSparse() = default;
+            BlockKinNSparse() : Sparse(), _compressedDimension{0}, _alignedColumns{0} {}
+
             BlockKinNSparse(std::string fileName) : Sparse(denseRows, denseColumns, dimMajority), 
                                                     _compressedDimension{dimMajority == COLUMN_MAJOR ? 
                                                                          ((denseColumns + N - 1) / N) * K : 
@@ -221,6 +225,24 @@ namespace Matrix
                 loadCSV(fileName);
             }
             ~BlockKinNSparse() = default;
+
+            BlockKinNSparse<K, N, denseRows, denseColumns, dimMajority> &operator=(BlockKinNSparse<K, N, denseRows, denseColumns, dimMajority>&& other)
+            {
+                if (this != &other)
+                {
+                    _floatMatrix = std::move(other._floatMatrix);
+                    const_cast<uint16_t&>(_compressedDimension) = std::move(other._compressedDimension);
+                    const_cast<uint16_t&>(_alignedColumns) = std::move(other._alignedColumns);
+                    
+                    _size = std::move(other._size);
+                    _rows = std::move(other._rows);
+                    _columns = std::move(other._columns);
+                    _dimMajority = std::move(other._dimMajority);
+
+                    other._floatMatrix = nullptr;
+                }
+                return *this;
+            }
 
             void printCompressed(uint8_t precision = 7)
             {

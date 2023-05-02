@@ -45,6 +45,37 @@ Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority,
 Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, std::byte *data) :
     Dense(rows, columns, dimMajority, 0, data) {}
 
+Dense &Dense::operator=(Dense &&other)
+{
+    if (this != &other)
+    {
+        _floatMatrix = move(other._floatMatrix);
+        _columns = move(other._columns);
+        _rows = move(other._rows);
+        _size = move(other._size);
+        _dimMajority = move(other._dimMajority);
+        _bytePadding = move(other._bytePadding);
+
+        other._floatMatrix = nullptr;
+    }
+
+    return *this;
+}
+
+float &Dense::operator()(uint16_t rowIndex, uint16_t columnIndex)
+{
+    if (_dimMajority == ROW_MAJOR)
+    {
+        return _floatMatrix[rowIndex * _columns + columnIndex];
+    }
+    else
+    {
+        return _floatMatrix[columnIndex * _rows + rowIndex];
+    }
+    
+    throw invalid_argument(_UNSUPPORTED_MAJORITY);
+}
+
 void Dense::loadCSV(string fileName)
 {
     ifstream file(fileName);

@@ -17,7 +17,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
-                cppFlags '-std=c++17 -mfpu=neon -mfloat-abi=hard -Ofast'
+                cppFlags '-std=c++20 -mfpu=neon -mfloat-abi=hard -Ofast -DPHONE=0'
                 arguments "-DANDROID_ARM_NEON=ON"
             }
         }
@@ -60,4 +60,5 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    implementation 'com.github.divyanshub024:AndroidDraw:v0.1'
 }

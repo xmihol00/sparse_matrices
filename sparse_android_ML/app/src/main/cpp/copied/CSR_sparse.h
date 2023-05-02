@@ -1,14 +1,18 @@
-#ifndef BLOCK4IN16_SPARSE_H
-#define BLOCK4IN16_SPARSE_H
+#ifndef CSR_SPARSE_H
+#define CSR_SPARSE_H
 
 #include "sparse.h"
 #include "dense.h"
 
-namespace Matrix 
+namespace Matrix
 {
-    class Block4in16Sparse : public Sparse
+    class CSRSparse : public Sparse
     {
         private:
+            uint32_t _nonZeroEntries = 0;
+            uint16_t *_columnIndices;
+            float *_dataMatrix;
+
             void allocateSpaceRowMajorCSV(std::ifstream &file) override;
             void allocateSpaceColumnMajorCSV(std::ifstream &file) override;
             void loadDataRowMajorCSV(std::ifstream &file) override;
@@ -17,11 +21,9 @@ namespace Matrix
             void loadBinary(std::string fileName) override;
         
         public:
-            Block4in16Sparse() = default;
-            Block4in16Sparse(std::string fileName, DimensionMajorityEnum dimMajority = FILE_DETERMINED);
-            ~Block4in16Sparse() = default;
-
-            void printCompressed(uint8_t precision = 7);
+            CSRSparse() = default;
+            CSRSparse(std::string fileName, DimensionMajorityEnum dimMajority = FILE_DETERMINED);
+            ~CSRSparse() = default;
 
             void printColumn(uint16_t columnIndex, uint8_t precision = 7) override;
             void printRow(uint16_t rowIndex, uint8_t precision = 7) override;
@@ -31,12 +33,6 @@ namespace Matrix
 
             void dot(Dense &operandMatrix, Dense &targetMatrix);
             Dense dot(Dense &operandMatrix);
-
-            void dot1(Dense &operandMatrix, Dense &targetMatrix);
-            Dense dot1(Dense &operandMatrix);
-
-            void dot2(Dense &operandMatrix, Dense &targetMatrix);
-            Dense dot2(Dense &operandMatrix);
     };
 }
 

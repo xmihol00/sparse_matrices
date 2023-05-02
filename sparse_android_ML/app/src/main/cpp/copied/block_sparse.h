@@ -1,27 +1,34 @@
-#ifndef BLOCK4IN16_SPARSE_H
-#define BLOCK4IN16_SPARSE_H
+#ifndef BLOCK_SPARSE_H
+#define BLOCK_SPARSE_H
 
 #include "sparse.h"
 #include "dense.h"
 
-namespace Matrix 
+namespace Matrix
 {
-    class Block4in16Sparse : public Sparse
+    class BlockSparse : public Sparse
     {
         private:
+            uint8_t _entriesPerBlock;
+            uint16_t _entriesPerDimension;
+            uint16_t _blocksPerDimension;
+
+            uint8_t *_entryIndices;
+            float *_dataMatrix;
+
             void allocateSpaceRowMajorCSV(std::ifstream &file) override;
             void allocateSpaceColumnMajorCSV(std::ifstream &file) override;
             void loadDataRowMajorCSV(std::ifstream &file) override;
             void loadDataColumnMajorCSV(std::ifstream &file) override;
 
             void loadBinary(std::string fileName) override;
+
+            void dotRowColumn(Dense &operandMatrix, Dense &targetMatrix);
         
         public:
-            Block4in16Sparse() = default;
-            Block4in16Sparse(std::string fileName, DimensionMajorityEnum dimMajority = FILE_DETERMINED);
-            ~Block4in16Sparse() = default;
-
-            void printCompressed(uint8_t precision = 7);
+            BlockSparse() = default;
+            BlockSparse(std::string fileName, uint16_t blocksPerDimension, DimensionMajorityEnum dimMajority = FILE_DETERMINED);
+            ~BlockSparse() = default;
 
             void printColumn(uint16_t columnIndex, uint8_t precision = 7) override;
             void printRow(uint16_t rowIndex, uint8_t precision = 7) override;
@@ -32,11 +39,8 @@ namespace Matrix
             void dot(Dense &operandMatrix, Dense &targetMatrix);
             Dense dot(Dense &operandMatrix);
 
-            void dot1(Dense &operandMatrix, Dense &targetMatrix);
-            Dense dot1(Dense &operandMatrix);
-
-            void dot2(Dense &operandMatrix, Dense &targetMatrix);
-            Dense dot2(Dense &operandMatrix);
+            void dotGPU(Dense &operandMatrix, Dense &targetMatrix);
+            Dense dotGPU(Dense &operandMatrix);
     };
 }
 

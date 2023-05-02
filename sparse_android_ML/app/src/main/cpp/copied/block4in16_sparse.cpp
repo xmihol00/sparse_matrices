@@ -1,16 +1,32 @@
 #include "block4in16_sparse.h"
+#if PHONE
+    #include <arm_neon.h>
+#else
+    #include "arm_neon_.h"
+#endif
 
 using namespace std;
 using namespace Matrix;
 
 Block4in16Sparse::Block4in16Sparse(string fileName, DimensionMajorityEnum dimMajority) : Sparse(dimMajority)
 {
-    if (_dimMajority == FILE_DETERMINED)
+    if (fileName.ends_with(".csv"))
     {
-        throw invalid_argument("Dimension majority must be specified when loading from CSV file.");
+        if (_dimMajority == FILE_DETERMINED)
+        {
+            throw invalid_argument("Dimension majority must be specified when loading from CSV file.");
+        }
+        
+        loadCSV(fileName);
     }
-
-    loadCSV(fileName);
+    else if (fileName.ends_with(".bms"))
+    {
+        loadBinary(fileName);
+    }
+    else
+    {
+        throw invalid_argument("Unsupported file extension.");
+    }
 }
 
 void Block4in16Sparse::allocateSpaceRowMajorCSV(ifstream &file)
@@ -21,7 +37,7 @@ void Block4in16Sparse::allocateSpaceRowMajorCSV(ifstream &file)
     _rows = count(istreambuf_iterator<char>(file), istreambuf_iterator<char>(), '\n') + 1;
     _columns += (16 - (_columns & 15)) * ((_columns & 15) != 0);  // pad columns to 16
     _rows += (16 - (_rows & 15)) * ((_rows & 15) != 0);           // pad rows to 16
-    _size = (_columns * _rows * sizeof(float) >> 2) + _columns * _rows * sizeof(uint8_t);
+    _size = (_columns * _rows * sizeof(float) >> 2) + (_columns * _rows * sizeof(uint8_t) >> 2);
     _byteMatrix = new(align_val_t{16}) byte[_size](); // allocate aligned memory to 16 bytes to allow AVX/NEON instructions
 }
 
@@ -123,7 +139,6 @@ void Block4in16Sparse::loadDataRowMajorCSV(ifstream &file)
             byteMatrices[i] = byteMatrices[i] + (_columns * sizeof(float) + _columns) * 3;
         } 
     }
-
 }
 
 void Block4in16Sparse::loadDataColumnMajorCSV(ifstream &file)
@@ -308,7 +323,7 @@ void Block4in16Sparse::dot(Dense &operandMatrix, Dense &targetMatrix)
                         column += 16;
                     }
 
-                    #pragma unroll
+                    #pragma GCC unroll 16
                     for (uint8_t k = 0; k < 16; k++)
                     {
                         target[k] += accumulators[k];
@@ -323,7 +338,7 @@ void Block4in16Sparse::dot(Dense &operandMatrix, Dense &targetMatrix)
 Dense Block4in16Sparse::dot(Dense &operandMatrix)
 {
     Dense targetMatrix(_rows, operandMatrix._columns, COLUMN_MAJOR);
-    dot1(operandMatrix, targetMatrix);
+    dot(operandMatrix, targetMatrix);
 
     return targetMatrix;
 }
@@ -397,7 +412,7 @@ void Block4in16Sparse::dot1(Dense &operandMatrix, Dense &targetMatrix)
 Dense Block4in16Sparse::dot1(Dense &operandMatrix)
 {
     Dense targetMatrix(_rows, operandMatrix._columns, COLUMN_MAJOR);
-    dot(operandMatrix, targetMatrix);
+    dot1(operandMatrix, targetMatrix);
 
     return targetMatrix;
 }
@@ -424,7 +439,7 @@ void Block4in16Sparse::dot2(Dense &operandMatrix, Dense &targetMatrix)
                     float *column = operandMatrix._floatMatrix + i * operandMatrix._rows;
                     for (uint16_t k = 0; k < _columns >> 4; k++)
                     {
-                        #pragma unroll
+                        #pragma GCC unroll 16
                         for (uint8_t l = 0; l < 16; l += 4)
                         {
                             float32x4_t a = vld1q_f32(row + l);
@@ -432,7 +447,7 @@ void Block4in16Sparse::dot2(Dense &operandMatrix, Dense &targetMatrix)
 
                             float32x4_t result = vmulq_f32(a, b);
 
-                            #pragma unroll
+                            #pragma GCC unroll 4
                             for (uint8_t m = 0; m < 4; m++)
                             {
                                 switch (indices[m])
@@ -496,7 +511,7 @@ void Block4in16Sparse::dot2(Dense &operandMatrix, Dense &targetMatrix)
                         column += 16;
                     }
 
-                    #pragma unroll
+                    #pragma GCC unroll 16
                     for (uint8_t k = 0; k < 16; k++)
                     {
                         target[k] += accumulators[k];

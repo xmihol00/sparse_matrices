@@ -22,7 +22,7 @@ DIR_CUDA_OBJ = $(addprefix $(BUILD_DIR)/$(CUDA_BUILD_DIR)/, $(CUDA_OBJ))
 DIR_CPP_DEPS = $(addprefix $(BUILD_DIR)/$(CPP_BUILD_DIR)/, $(CPP_DEPS))
 DIR_CUDA_DEPS = $(addprefix $(BUILD_DIR)/$(CUDA_BUILD_DIR)/, $(CUDA_DEPS))
 DEPLOY_FILES = base.h base.cpp dense.h dense.cpp models.h models.cpp enums.h
-COPY_SRC = $(addprefix $(SRC_DIR)/, $(DEPLOY_FILES))
+COPY_SRC = $(filter-out $(SRC_DIR)/main.cpp, $(CPP_SRC)) $(wildcard $(SRC_DIR)/*.h)
 
 .PHONY: all multi_threaded clean deploy
 
@@ -47,11 +47,7 @@ $(BUILD_DIR)/$(CUDA_BUILD_DIR)/%.o: $(SRC_DIR)/%.cu
 	$(NVCC) $< $(NVCCLAGS) -c -o $@
 
 deploy:
-	$(foreach file, $(COPY_SRC), cp $(file) $(DEPLOY_DIR);)
-
-$(DEPLOY_DIR)/%: $(COPY_SRC)
-	@echo "Copying $< to $(DEPLOY_DIR)/"
-	@cp -rf $< $(DEPLOY_DIR)/
+	$(foreach file, $(COPY_SRC), cp -u $(file) $(DEPLOY_DIR);)
 
 clean:
 	@rm -r $(EXE) $(BUILD_DIR)

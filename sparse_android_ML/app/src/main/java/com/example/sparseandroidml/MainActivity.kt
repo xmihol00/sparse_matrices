@@ -7,11 +7,15 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.media.audiofx.BassBoost
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.service.autofill.OnClickAction
 import android.util.Log
+import android.view.MotionEvent
+import android.view.View.OnClickListener
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -25,10 +29,19 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
 import kotlin.system.measureTimeMillis
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Paint
+import org.checkerframework.checker.signedness.qual.Unsigned
+import java.text.DecimalFormat
+import kotlin.system.measureNanoTime
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private var _runs: Int = 1
 
     private fun loadCsvFile(filePath: String): Array<FloatArray> {
         val rows = mutableListOf<FloatArray>()
@@ -80,12 +93,52 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun rescaleAndConvertToMonochrome(bitmap: Bitmap, width: Int, height: Int): Bitmap {
+        // rescale to width x height
+        val resizedBitmap = Bitmap.createScaledBitmap(bitmap, width, height, true)
+
+        // convert to monochrome
+        val monochromeBitmap = Bitmap.createBitmap(width, height, resizedBitmap.config)
+
+        // color filter for monochrome conversion
+        val colorMatrix = ColorMatrix()
+        colorMatrix.setSaturation(0f)
+        val colorFilter = ColorMatrixColorFilter(colorMatrix)
+
+        val canvas = Canvas(monochromeBitmap)
+        val paint = Paint()
+        paint.colorFilter = colorFilter
+
+        // draw the monochrome bitmap
+        canvas.drawBitmap(resizedBitmap, 0f, 0f, paint)
+
+        return monochromeBitmap
+    }
+
+    fun getPixelArray(bitmap: Bitmap): FloatArray {
+        val width = bitmap.width
+        val height = bitmap.height
+        val pixelArray = IntArray(width * height)
+
+        // get the pixel values as an IntArray
+        bitmap.getPixels(pixelArray, 0, width, 0, 0, width, height)
+
+        // convert from Int to Float, normalize between 0 and 1
+        val floatArray = FloatArray(pixelArray.size)
+        for (i in pixelArray.indices) {
+            floatArray[i] = Color.red(pixelArray[i]) / 255.0f
+        }
+
+        return floatArray
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        loadModels()
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
 
         /*var fileInputStream: FileInputStream? = null
         fileInputStream = openFileInput("mnist_y_test.csv")
@@ -97,7 +150,7 @@ class MainActivity : AppCompatActivity() {
             stringBuilder.append(text)
         }*/
 
-        saveConfigToInternalStorage()
+        /*saveConfigToInternalStorage()
 
         val accuracy : Double
         val elapsed = measureTimeMillis {
@@ -126,14 +179,104 @@ class MainActivity : AppCompatActivity() {
             accuracy = correctPredictions.toDouble() / totalSamples * 100
         }
 
-        binding.sampleText.text = "Elapsed time TFLite: $elapsed ms\n" + stringFromJNI()
+        binding.sampleText.text = "Elapsed time TFLite: $elapsed ms\n" + stringFromJNI()*/
+
+        val model = Mnist.newInstance(this)
+        val inputFeature = TensorBuffer.createFixedSize(intArrayOf(1, 1024), DataType.FLOAT32)
+
+        with (binding.clearBtn) {
+            setOnClickListener {
+                binding.digitDrawView.clearCanvas()
+                binding.resultText.text = ""
+                binding.performanceAverageText.text = ""
+                binding.performanceTotalText.text = ""
+            }
+        }
+
+        with (binding.classifyTFBtn) {
+           setOnClickListener {
+               val pixelArray = getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
+
+               var predictedIndex: Int? = 0
+               val elapsed = measureNanoTime {
+                   for (i in 0 until _runs)
+                   {
+                       inputFeature.loadArray(pixelArray)
+                       val modelOutput = model.process(inputFeature)
+                       val outputFeature = modelOutput.outputFeature0AsTensorBuffer
+                       predictedIndex = outputFeature.floatArray.withIndex().maxByOrNull { it.value }?.index
+                   }
+               }
+               val formater = DecimalFormat("#.###")
+               binding.resultText.text = predictedIndex.toString()
+               binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
+               binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
+           }
+        }
+
+        with (binding.classify4in16Btn) {
+            setOnClickListener {
+                val pixelArray = getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
+
+                var predictedIndex : Int = 0
+                val elapsed = measureNanoTime {
+                    for (i in 0 until _runs)
+                    {
+                        predictedIndex = run4in16model(pixelArray)
+                    }
+                }
+                val formater = DecimalFormat("#.###")
+                binding.resultText.text = predictedIndex.toString()
+                binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
+                binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
+            }
+        }
+
+        with (binding.classify2in16Btn) {
+            setOnClickListener {
+                val pixelArray = getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
+
+                var predictedIndex : Int = 0
+                val elapsed = measureNanoTime {
+                    for (i in 0 until _runs)
+                    {
+                        predictedIndex = run2in16model(pixelArray)
+                    }
+                }
+                val formater = DecimalFormat("#.###")
+                binding.resultText.text = predictedIndex.toString()
+                binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
+                binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
+            }
+        }
+
+        with (binding.digitDrawView) {
+            setStrokeWidth(70f)
+            setColor(Color.WHITE)
+            setBackgroundColor(Color.BLACK)
+        }
+
+        with (binding.subtractRunBtn) {
+            setOnClickListener {
+                if (_runs > 1)
+                {
+                    _runs--
+                    binding.runsText.text = "Runs: $_runs"
+                }
+            }
+        }
+
+        with(binding.addRunBtn) {
+            setOnClickListener {
+                _runs++
+                binding.runsText.text = "Runs: $_runs"
+            }
+        }
     }
 
-    /**
-     * A native method that is implemented by the 'sparseandroidml' native library,
-     * which is packaged with this application.
-     */
-    external fun stringFromJNI(): String
+    external fun loadModels(): Unit
+    external fun run4in16model(sample: FloatArray): Int
+    external fun run2in16model(sample: FloatArray): Int
 
     companion object {
         // Used to load the 'sparseandroidml' library on application startup.

@@ -3,17 +3,17 @@
 using namespace std;
 using namespace Matrix;
 
-Dense::Dense(string fileName, DimensionMajorityEnum dimMajority) : Base(dimMajority) 
+Dense::Dense(string fileName, DimensionMajorityEnum dimMajority, uint16_t bytePadding) : Base(dimMajority), _bytePadding{bytePadding}
 {
-    /*if (fileName.ends_with(".csv"))
-    {*/
+    if (fileName.ends_with(".csv"))
+    {
         if (_dimMajority == FILE_DETERMINED)
         {
             throw invalid_argument("Dimension majority must be specified when loading from CSV file.");
         }
         
         loadCSV(fileName);
-    /*}
+    }
     else if (fileName.ends_with(".bms"))
     {
         loadBinary(fileName);
@@ -21,17 +21,58 @@ Dense::Dense(string fileName, DimensionMajorityEnum dimMajority) : Base(dimMajor
     else
     {
         throw invalid_argument("Unsupported file extension.");
-    }*/
+    }
 }
 
-Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, std::byte *data) : Base(rows, columns, dimMajority)
+Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, uint16_t bytePadding, std::byte *data) : 
+    Base(rows, columns, dimMajority), _bytePadding{bytePadding}
 {
-    _byteMatrix = new byte[_size]();
+    _byteMatrix = new byte[_size + _bytePadding]();
 
     if (data != nullptr)
     {
         memcpy(_byteMatrix, data, _size);
     }
+}
+
+Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority) : 
+    Dense(rows, columns, dimMajority, 0, nullptr) {}
+
+Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, uint16_t bytePadding) : 
+    Dense(rows, columns, dimMajority, bytePadding, nullptr) {}
+
+Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, std::byte *data) :
+    Dense(rows, columns, dimMajority, 0, data) {}
+
+Dense &Dense::operator=(Dense &&other)
+{
+    if (this != &other)
+    {
+        _floatMatrix = move(other._floatMatrix);
+        _columns = move(other._columns);
+        _rows = move(other._rows);
+        _size = move(other._size);
+        _dimMajority = move(other._dimMajority);
+        _bytePadding = move(other._bytePadding);
+
+        other._floatMatrix = nullptr;
+    }
+
+    return *this;
+}
+
+float &Dense::operator()(uint16_t rowIndex, uint16_t columnIndex)
+{
+    if (_dimMajority == ROW_MAJOR)
+    {
+        return _floatMatrix[rowIndex * _columns + columnIndex];
+    }
+    else
+    {
+        return _floatMatrix[columnIndex * _rows + rowIndex];
+    }
+
+    throw invalid_argument(_UNSUPPORTED_MAJORITY);
 }
 
 void Dense::loadCSV(string fileName)
@@ -44,7 +85,7 @@ void Dense::loadCSV(string fileName)
         _columns = count(row.begin(), row.end(), ',') + 1;
         _rows = count(istreambuf_iterator<char>(file), istreambuf_iterator<char>(), '\n') + 1;
         _size = _columns * _rows * sizeof(float);
-        _byteMatrix = new byte[_size]();
+        _byteMatrix = new byte[_size + _bytePadding]();
         
         file.clear();
         file.seekg(0);
@@ -96,9 +137,9 @@ void Dense::printRow(uint16_t rowIndex, uint8_t precision)
         float *offsetMatrix = &_floatMatrix[_columns * rowIndex];
         for (int32_t i = 0; i < _columns - 1; i++)
         {
-            cout << offsetMatrix[i] << ',';
+            cout << setw(precision + 3) << offsetMatrix[i] << ',';
         }
-        cout << offsetMatrix[_columns - 1] << endl;
+        cout << setw(precision + 3) << offsetMatrix[_columns - 1] << endl;
     }
     else if (_dimMajority == COLUMN_MAJOR)
     {
@@ -106,9 +147,9 @@ void Dense::printRow(uint16_t rowIndex, uint8_t precision)
         int32_t upperBound = (_rows - 1) * _columns;
         for (; i < upperBound && _columns > 1; i += _rows)
         {
-            cout << _floatMatrix[i] << ',';
+            cout << setw(precision + 3) << _floatMatrix[i] << ',';
         }
-        cout << _floatMatrix[i] << endl;
+        cout << setw(precision + 3) << _floatMatrix[i] << endl;
     }
 }
 
@@ -121,7 +162,7 @@ void Dense::printColumn(uint16_t columnIndex, uint8_t precision)
     {
         for (uint32_t i = columnIndex; i < _rows * _columns; i += _columns)
         {
-            cout << _floatMatrix[i] << endl;
+            cout << setw(precision + 3) << _floatMatrix[i] << endl;
         }
     }
     else if (_dimMajority == COLUMN_MAJOR)
@@ -129,7 +170,7 @@ void Dense::printColumn(uint16_t columnIndex, uint8_t precision)
         float *offsetMatrix = &_floatMatrix[_rows * columnIndex];
         for (uint32_t i = 0; i < _rows; i++)
         {
-            cout << offsetMatrix[i] << endl;
+            cout << setw(precision + 3) << offsetMatrix[i] << endl;
         }
     }
 }
@@ -272,4 +313,24 @@ Dense Dense::argmax(uint8_t axis)
     argmax(axis, targetMatrix);
 
     return targetMatrix;
+}
+
+float Dense::percentageDifference(Dense &operandMatrix, float threshold)
+{
+    if (_dimMajority == operandMatrix._dimMajority)
+    {
+        uint32_t numberOfElements = _columns * _rows;
+        uint32_t sameElements = 0;
+        for (uint32_t i = 0; i < numberOfElements; i++)
+        {
+            if (abs(_floatMatrix[i] - operandMatrix._floatMatrix[i]) <= threshold)
+            {
+                sameElements++;
+            }
+        }
+
+        return static_cast<float>(sameElements) / static_cast<float>(numberOfElements);
+    }
+
+    return 1.0f;
 }

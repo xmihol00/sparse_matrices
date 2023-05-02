@@ -26,7 +26,13 @@ namespace Matrix
             Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, uint16_t bytePadding);
             Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, std::byte *data);
             Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, uint16_t bytePadding, std::byte *data);
+            Dense(const Matrix::Dense&) = default;
+            Dense(Matrix::Dense&&) = default;
+
             ~Dense() = default;
+
+            Dense &operator=(Dense &&other);
+            float &operator()(uint16_t rowIndex, uint16_t columnIndex);
 
             void printColumn(uint16_t columnIndex, uint8_t precision = 7) override;
             void printRow(uint16_t rowIndex, uint8_t precision = 7) override;

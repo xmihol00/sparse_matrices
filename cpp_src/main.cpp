@@ -55,7 +55,8 @@ int main()
     cerr << "Accuracy: " << resultsSparse.percentageDifference(groundTruth) << endl;
 
     Dense inputSparse2("datasets/mnist_X_test_T.csv", COLUMN_MAJOR);
-    Mnist32x32_4L_KinMSparse<4, 16> modelSparse2("weights/weights_", "weights/biases_");
+    Mnist32x32_4L_KinMSparse<4, 16> modelSparse2;
+    modelSparse2.load("weights/weights_", "weights/biases_");
     start = chrono::high_resolution_clock::now();
     Dense outputSparse2 = modelSparse2.predict(inputSparse2);
     end = chrono::high_resolution_clock::now();

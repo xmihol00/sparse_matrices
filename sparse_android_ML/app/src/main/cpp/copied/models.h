@@ -70,6 +70,7 @@ namespace Models
             Matrix::Dense B4;
 
         public:
+            Mnist32x32_4L_KinMSparse() {};
             Mnist32x32_4L_KinMSparse(std::string weightsFileTemplate, std::string biasesFileTemplate) : 
                 W0{weightsFileTemplate + "l0.csv"},
                 W1{weightsFileTemplate + "l1.csv"},
@@ -84,6 +85,21 @@ namespace Models
             { }
 
             ~Mnist32x32_4L_KinMSparse() = default;
+
+            void load(std::string weightsFileTemplate, std::string biasesFileTemplate)
+            {
+                W0 = Matrix::BlockKinNSparse<K, N, 1024, 1024, Matrix::ROW_MAJOR>{weightsFileTemplate + "l0.csv"};
+                W1 = Matrix::BlockKinNSparse<K, N, 1024, 1024, Matrix::ROW_MAJOR>{weightsFileTemplate + "l1.csv"};
+                W2 = Matrix::BlockKinNSparse<K, N, 1024, 1024, Matrix::ROW_MAJOR>{weightsFileTemplate + "l2.csv"};
+                W3 = Matrix::BlockKinNSparse<K, N, 1024, 1024, Matrix::ROW_MAJOR>{weightsFileTemplate + "l3.csv"};
+                W4 = Matrix::Dense{weightsFileTemplate + "l4.csv", Matrix::ROW_MAJOR};
+
+                B0 = Matrix::Dense{biasesFileTemplate + "l0.csv", Matrix::COLUMN_MAJOR};
+                B1 = Matrix::Dense{biasesFileTemplate + "l1.csv", Matrix::COLUMN_MAJOR};
+                B2 = Matrix::Dense{biasesFileTemplate + "l2.csv", Matrix::COLUMN_MAJOR};
+                B3 = Matrix::Dense{biasesFileTemplate + "l3.csv", Matrix::COLUMN_MAJOR};
+                B4 = Matrix::Dense{biasesFileTemplate + "l4.csv", Matrix::COLUMN_MAJOR};
+            }
 
             void predict(Matrix::Dense &input, Matrix::Dense &output)
             {
