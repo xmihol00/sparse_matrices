@@ -1,9 +1,14 @@
 #ifndef MODELS_H
 #define MODELS_H
 
+#include <thread>
+#include <barrier>
+#include <functional>
+
 #include "dense.h"
 #include "block4in16_sparse.h"
 #include "blockKinN_sparse.h"
+#include "activations.h"
 
 namespace Models
 {
@@ -68,6 +73,23 @@ namespace Models
             Matrix::Dense B2;
             Matrix::Dense B3;
             Matrix::Dense B4;
+
+            template <float (*activationFunction)(float)>
+            void predictActivationThread(Matrix::Dense &input, Matrix::Dense &tmp, uint8_t numberOfThreads, uint8_t threadId, 
+                                         std::barrier<> &syncBarrier)
+            {
+                W0.template dotAddActivate<activationFunction>(input, B0, tmp, numberOfThreads, threadId);
+                syncBarrier.arrive_and_wait();
+
+                W1.template dotAddActivate<activationFunction>(tmp, B1, input, numberOfThreads, threadId);
+                syncBarrier.arrive_and_wait();
+
+                W2.template dotAddActivate<activationFunction>(input, B2, tmp, numberOfThreads, threadId);
+                syncBarrier.arrive_and_wait();
+
+                W3.template dotAddActivate<activationFunction>(tmp, B3, input, numberOfThreads, threadId);
+                syncBarrier.arrive_and_wait();
+            }
 
         public:
             Mnist32x32_4L_KinMSparse() {};
@@ -164,6 +186,65 @@ namespace Models
 
                 Dense output(B4.getRows(), input.getColumns(), COLUMN_MAJOR);
                 predictThreads(input, output);
+                return output;
+            }
+ 
+            void predictOptimized(Matrix::Dense &input, Matrix::Dense &output)
+            {
+                using namespace Matrix;
+                
+                Dense tmp(W0.getRows(), input.getColumns(), COLUMN_MAJOR);
+
+                W0.template dotAddActivate<ReLU>(input, B0, tmp);                              
+                W1.template dotAddActivate<ReLU>(tmp, B1, input);
+                W2.template dotAddActivate<ReLU>(input, B2, tmp);
+                W3.template dotAddActivate<ReLU>(tmp, B3, input);
+
+                W4.dot(input, output);
+                output.add(B4);
+            }
+
+            Matrix::Dense predictOptimized(Matrix::Dense &input)
+            {
+                using namespace Matrix;
+
+                Dense output(B4.getRows(), input.getColumns(), COLUMN_MAJOR);
+                predictOptimized(input, output);
+                return output;
+            }
+
+            template <uint8_t numberOfThreads>
+            void predictOptimizedThreads(Matrix::Dense &input, Matrix::Dense &output)
+            {
+                using namespace Matrix;
+                using namespace std;
+
+                thread threads[numberOfThreads];
+                barrier syncBarrier(numberOfThreads);
+                
+                Dense tmp(W0.getRows(), input.getColumns(), COLUMN_MAJOR);
+
+                for (uint8_t i = 0; i < numberOfThreads; i++)
+                {
+                    threads[i] = thread(&Mnist32x32_4L_KinMSparse::predictActivationThread<ReLU>, this, ref(input), ref(tmp), numberOfThreads, i, ref(syncBarrier));
+                }
+
+                for (uint8_t i = 0; i < numberOfThreads; i++)
+                {
+                    threads[i].join();
+                }
+
+                W4.dot(input, output);
+                output.add(B4);
+            }
+
+            template <uint8_t numberOfThreads>
+            Matrix::Dense predictOptimizedThreads(Matrix::Dense &input)
+            {
+                using namespace Matrix;
+
+                Dense output(B4.getRows(), input.getColumns(), COLUMN_MAJOR);
+                predictOptimizedThreads<numberOfThreads>(input, output);
                 return output;
             }
     };

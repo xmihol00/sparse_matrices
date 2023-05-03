@@ -1,25 +1,9 @@
 package com.example.sparseandroidml
 
-import android.Manifest.permission.READ_EXTERNAL_STORAGE
-import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-import android.R
-import android.content.Context
-import android.content.DialogInterface
-import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Color
-import android.media.audiofx.BassBoost
-import android.os.Build
 import android.os.Bundle
-import android.os.Environment
-import android.service.autofill.OnClickAction
 import android.util.Log
-import android.view.MotionEvent
-import android.view.View.OnClickListener
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import com.example.sparseandroidml.databinding.ActivityMainBinding
 import com.example.sparseandroidml.ml.Mnist
 import org.tensorflow.lite.DataType
@@ -27,20 +11,122 @@ import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 import java.io.*
 import java.io.BufferedReader
 import java.io.File
-import java.io.FileReader
-import kotlin.system.measureTimeMillis
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
-import org.checkerframework.checker.signedness.qual.Unsigned
 import java.text.DecimalFormat
 import kotlin.system.measureNanoTime
+import android.content.Context
+import org.tensorflow.lite.Interpreter
+import java.io.IOException
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.file.Files
+
+class TFLiteModel(context: Context, modelFileName: String) {
+    private var tflite: Interpreter
+
+    private val inputDataType: DataType
+    private val outputDataType: DataType
+
+    private val inputShape: IntArray
+    private val outputShape: IntArray
+
+    private val inputQuantScale: Float
+    private val inputQuantZeroPoint: Int
+    private val outputQuantScale: Float
+    private val outputQuantZeroPoint: Int
+
+    init {
+
+        tflite = Interpreter(loadModelFile(context, modelFileName))
+
+        val inputTensor = tflite.getInputTensor(0)
+        val outputTensor = tflite.getOutputTensor(0)
+
+        inputDataType = inputTensor.dataType()
+        outputDataType = outputTensor.dataType()
+
+        inputShape = inputTensor.shape()
+        outputShape = outputTensor.shape()
+
+        inputQuantScale = inputTensor.quantizationParams().scale
+        inputQuantZeroPoint = inputTensor.quantizationParams().zeroPoint
+
+        outputQuantScale = outputTensor.quantizationParams().scale
+        outputQuantZeroPoint = outputTensor.quantizationParams().zeroPoint
+    }
+
+    @Throws(IOException::class)
+    private fun loadModelFile(context: Context, modelFileName: String): ByteBuffer {
+        val modelPath = context.getFileStreamPath(modelFileName)
+        val modelData = Files.readAllBytes(modelPath.toPath())
+        val modelBuffer = ByteBuffer.allocateDirect(modelData.size).order(ByteOrder.nativeOrder())
+        modelBuffer.put(modelData)
+        return modelBuffer
+    }
+
+    fun getPixelArray(bitmap: Bitmap): ByteBuffer {
+        val width = bitmap.width
+        val height = bitmap.height
+        val pixelArray = IntArray(width * height)
+
+        // get the pixel values as an IntArray
+        bitmap.getPixels(pixelArray, 0, width, 0, 0, width, height)
+
+        // convert from Int to Float, normalize between 0 and 1
+        val byteArray = ByteBuffer.allocateDirect(pixelArray.size * inputDataType.byteSize()).order(ByteOrder.nativeOrder())
+        for (i in pixelArray.indices) {
+            byteArray.put((((Color.red(pixelArray[i]) / 255.0f) / inputQuantScale) + inputQuantZeroPoint).toInt().toByte())
+        }
+
+        return byteArray
+    }
+
+    fun runInference(inputByteBuffer: ByteBuffer): Int {
+        //val inputByteBuffer = ByteBuffer.allocateDirect(input.size * inputDataType.byteSize()).order(ByteOrder.nativeOrder())
+        val outputByteBuffer = ByteBuffer.allocateDirect(outputShape[0] * outputShape[1] * outputDataType.byteSize()).order(ByteOrder.nativeOrder())
+
+        // Convert float input to int8
+        /*inputByteBuffer.rewind()
+        for (i in input.indices) {
+            val quantValue = ((input[i] / inputQuantScale) + inputQuantZeroPoint).toInt().toByte()
+            inputByteBuffer.put(quantValue)
+        }*/
+
+        // Run inference
+        tflite?.run(inputByteBuffer, outputByteBuffer)
+
+        // Find the index with the highest value
+        var maxIndex = -1
+        var maxValue = Int.MIN_VALUE
+        outputByteBuffer.rewind()
+        for (i in 0 until outputShape[1]) {
+            val quantValue = outputByteBuffer.get().toInt()
+            if (quantValue > maxValue) {
+                maxValue = quantValue
+                maxIndex = i
+            }
+        }
+
+        return maxIndex
+    }
+
+    fun close() {
+        tflite?.close()
+    }
+
+    companion object {
+        private const val NUM_CLASSES = 10 // Replace with the number of output classes in your model
+    }
+}
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var optimizedModel: TFLiteModel
     private var _runs: Int = 1
 
     private fun loadCsvFile(filePath: String): Array<FloatArray> {
@@ -66,7 +152,7 @@ class MainActivity : AppCompatActivity() {
         val assetManager = assets
         val filenames = arrayOf("mnist_X_test.csv", "mnist_X_test_T.csv", "biases_l0.csv", "biases_l1.csv", "biases_l2.csv",
                                 "biases_l3.csv", "biases_l4.csv", "weights_l0.csv", "weights_l1.csv", "weights_l2.csv",
-                                "weights_l3.csv", "weights_l4.csv", "mnist_y_test.csv")
+                                "weights_l3.csv", "weights_l4.csv", "mnist_y_test.csv", "mnist_optimized.tflite", "mnist_optimized_GPU.tflite")
         for (filename in filenames)
         {
             val outFile = File(filesDir, filename)
@@ -181,6 +267,9 @@ class MainActivity : AppCompatActivity() {
 
         binding.sampleText.text = "Elapsed time TFLite: $elapsed ms\n" + stringFromJNI()*/
 
+        //saveConfigToInternalStorage()
+
+        optimizedModel =  TFLiteModel(this, "mnist_optimized.tflite")
         val model = Mnist.newInstance(this)
         val inputFeature = TensorBuffer.createFixedSize(intArrayOf(1, 1024), DataType.FLOAT32)
 
@@ -193,7 +282,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        with (binding.classifyTFBtn) {
+        with (binding.classifyTFDefaultBtn) {
            setOnClickListener {
                val pixelArray = getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
 
@@ -212,6 +301,24 @@ class MainActivity : AppCompatActivity() {
                binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
                binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
            }
+        }
+
+        with (binding.classifyTFQuantizedBtn) {
+            setOnClickListener {
+                val pixelArray = optimizedModel.getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
+
+                var predictedIndex: Int? = 0
+                val elapsed = measureNanoTime {
+                    for (i in 0 until _runs)
+                    {
+                        predictedIndex = optimizedModel.runInference(pixelArray)
+                    }
+                }
+                val formater = DecimalFormat("#.###")
+                binding.resultText.text = predictedIndex.toString()
+                binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
+                binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
+            }
         }
 
         with (binding.classify4in16Btn) {
@@ -272,6 +379,11 @@ class MainActivity : AppCompatActivity() {
                 binding.runsText.text = "Runs: $_runs"
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        optimizedModel.close()
     }
 
     external fun loadModels(): Unit

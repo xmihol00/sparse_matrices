@@ -57,6 +57,7 @@
         "map": "cpp",
         "cinttypes": "cpp",
         "ratio": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "barrier": "cpp"
     },
 }

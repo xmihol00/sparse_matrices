@@ -44,6 +44,22 @@ Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority,
 Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, std::byte *data) :
     Dense(rows, columns, dimMajority, 0, data) {}
 
+Dense::Dense(const Matrix::Dense& other) : 
+    Base(other._rows, other._columns, other._dimMajority), _bytePadding{other._bytePadding}
+{
+    cout << "Dense copy constructor called." << endl;
+    cout << _size << endl;
+    _byteMatrix = new byte[_size]();
+    memcpy(_byteMatrix, other._byteMatrix, _size);
+}
+
+Dense::Dense(Matrix::Dense&& other) : 
+    Base(other._rows, other._columns, other._dimMajority), _bytePadding{other._bytePadding}
+{
+    _floatMatrix = move(other._floatMatrix);
+    other._floatMatrix = nullptr;
+}
+
 Dense &Dense::operator=(Dense &&other)
 {
     if (this != &other)
@@ -71,7 +87,7 @@ float &Dense::operator()(uint16_t rowIndex, uint16_t columnIndex)
     {
         return _floatMatrix[columnIndex * _rows + rowIndex];
     }
-
+    
     throw invalid_argument(_UNSUPPORTED_MAJORITY);
 }
 

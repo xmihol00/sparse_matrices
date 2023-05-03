@@ -5,9 +5,9 @@
 
 #include "sparse.h"
 #if PHONE
-    #include <arm_neon.h>
+#include <arm_neon.h>
 #else
-    #include "arm_neon_.h"
+#include "arm_neon_.h"
 #endif
 
 namespace Matrix 
@@ -394,6 +394,91 @@ namespace Matrix
             {
                 Dense targetMatrix(_rows, operandMatrix._columns, COLUMN_MAJOR);
                 dotThreads(operandMatrix, targetMatrix);
+
+                return targetMatrix;
+            }
+
+            template <float (*activationFunction)(float)>
+            void dotAddActivate(Dense &dotMatrix, Dense &addVector, Dense &targetMatrix, uint8_t threadCount = 1, uint8_t threadId = 0)
+            {
+                float accumulators[N] = { 0.0f, };
+
+                if (_dimMajority == ROW_MAJOR)
+                {
+                    const uint16_t rowBlocks = _compressedDimension / K / threadCount;
+                    const uint32_t operandOffset = _compressedDimension / threadCount * (_columns + _columns / sizeof(float)) * threadId;
+                    const uint16_t targetOffset = targetMatrix._rows / threadCount * threadId;
+                    const int16_t targetPadding = denseRows - _compressedDimension / K * N + targetMatrix._rows - targetMatrix._rows / threadCount;
+                    const uint16_t columnBlocks = denseColumns >> 4;
+
+                    float *target = targetMatrix._floatMatrix + targetOffset;
+                    float *dotColumn = dotMatrix._floatMatrix;
+                    float *addColumnOffseted = addVector._floatMatrix + N * threadId;
+                    float *addColumn = addColumnOffseted;
+                    float *offsetedRow = _floatMatrix + operandOffset;
+                    uint8_t *offsetedIndices = _uint8Matrix + (operandOffset + 16) * sizeof(float);
+
+                    if (dotMatrix._dimMajority == COLUMN_MAJOR && addVector._dimMajority == COLUMN_MAJOR)
+                    {
+                        for (uint16_t i = 0; i < dotMatrix._columns; i++)
+                        {
+                            float *row = offsetedRow;
+                            uint8_t *indices = offsetedIndices;
+                            
+                            for (uint16_t j = 0; j < rowBlocks; j++)
+                            {
+                                for (uint8_t k = 0; k < K; k++)
+                                {
+                                    #pragma GCC unroll 16
+                                    for (uint16_t l = 0; l < columnBlocks; l++)
+                                    {
+                                        #pragma GCC unroll 4
+                                        for (uint8_t m = 0; m < 4; m++)
+                                        {
+                                            float32x4_t a = vld1q_f32(row);
+                                            float32x4_t b = vld1q_f32(dotColumn);
+                                            a = vmulq_f32(a, b);
+
+                                            #pragma GCC unroll 4
+                                            for (uint8_t n = 0; n < 4; n++)
+                                            {
+                                                accumulators[indices[n]] += a[n];
+                                            }
+
+                                            row += 4;
+                                            indices += 4;
+                                            dotColumn += 4;
+                                        }
+
+                                        row += 16 / sizeof(float);
+                                        indices += 16 * sizeof(float);
+                                    }
+                                    dotColumn -= dotMatrix._rows;
+                                }
+
+                                #pragma GCC ivdep
+                                for (uint8_t k = 0; k < N; k++)
+                                {
+                                    target[k] = activationFunction(accumulators[k] + addColumn[k]);
+                                    accumulators[k] = 0.0f;
+                                }
+                                target += N;
+                                addColumn += N;
+                            }
+
+                            addColumn = addColumnOffseted;
+                            target += targetPadding;
+                            dotColumn += dotMatrix._rows;
+                        }
+                    }
+                }
+            }
+                        
+            template <float (*activationFunction)(float)>
+            Dense dotAddActivate(Dense &dotMatrix, Dense &addVector)
+            {
+                Dense targetMatrix(_rows, dotMatrix._columns, COLUMN_MAJOR);
+                dotAddActivate<activationFunction>(dotMatrix, addVector, targetMatrix);
 
                 return targetMatrix;
             }

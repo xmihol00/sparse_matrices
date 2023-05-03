@@ -2,6 +2,10 @@ import numpy as np
 import tensorflow as tf
 import idx2numpy as idx
 
+def representative_dataset(dataset):
+    for sample in dataset:
+        yield [sample.astype(np.float32)]
+
 class WeightThresholdingCallback(tf.keras.callbacks.Callback):
     def __init__(self, thresholds):
         super(WeightThresholdingCallback, self).__init__()
@@ -117,15 +121,31 @@ model.evaluate(X_test, y_test)
 converter = tf.lite.TFLiteConverter.from_keras_model(model) 
 lite_model = converter.convert()
 
-# save the model
-with open("models/mnist.tflite", 'wb') as f:
-    f.write(lite_model)
+# save the basic model
 with open("sparse_android_ML/app/src/main/ml/mnist.tflite", 'wb') as f:
     f.write(lite_model)
 
-layers = model.layers
+converter = tf.lite.TFLiteConverter.from_keras_model(model)
+converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_LATENCY]
+converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+converter.inference_input_type = tf.int8
+converter.inference_output_type = tf.int8
+converter.representative_dataset = lambda x=X_train: representative_dataset(x)
+lite_model = converter.convert()
+
+# save the optimized model
+with open("sparse_android_ML/app/src/main/ml/mnist_optimized.tflite", 'wb') as f:
+    f.write(lite_model)
+
+converter.target_spec.experimental_supported_backends = "GPU"
+lite_model = converter.convert()
+
+# save the optimized model for GPU
+with open("sparse_android_ML/app/src/main/ml/mnist_optimized_gpu.tflite", 'wb') as f:
+    f.write(lite_model)
 
 # save weights and biases to csv files
+layers = model.layers
 for i, layer in enumerate(layers):
     if isinstance(layer, tf.keras.layers.Dense):
         weights, biases = layer.get_weights()

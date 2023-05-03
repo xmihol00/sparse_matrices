@@ -53,10 +53,17 @@
     </LinearLayout>
 
     <Button
-        android:id="@+id/classifyTFBtn"
+        android:id="@+id/classifyTFDefaultBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Classify TF"
+        android:text="Classify TF default"
+        android:layout_marginHorizontal="1dp"/>
+
+    <Button
+        android:id="@+id/classifyTFQuantizedBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Classify TF quantized"
         android:layout_marginHorizontal="1dp"/>
 
     <Button
