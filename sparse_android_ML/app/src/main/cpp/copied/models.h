@@ -10,6 +10,9 @@
 #include "blockKinN_sparse.h"
 #include "activations.h"
 
+#include <android/log.h>
+#define LOG_TAG "C++ code"
+
 namespace Models
 {
     class Mnist32x32_4L
@@ -79,20 +82,24 @@ namespace Models
                 _semaphore.acquire();        
                 while (_run)
                 {
+                    //__android_log_print(ANDROID_LOG_INFO, LOG_TAG, "Thread %d stared l0\n", threadId);
                     _W0.dotAddActivateThread(_input, _B0, _tmp1, ReLU, numberOfThreads, threadId);
-                    _barrier.arrive_and_wait();
+                    //__android_log_print(ANDROID_LOG_INFO, LOG_TAG, "Thread %d finished l0\n", threadId);
+                    //_barrier.arrive_and_wait();
 
+                    //__android_log_print(ANDROID_LOG_INFO, LOG_TAG, "Thread %d stared l1\n", threadId);
                     _W1.dotAddActivateThread(_tmp1, _B1, _tmp2, ReLU, numberOfThreads, threadId);
-                    _barrier.arrive_and_wait();
+                    //__android_log_print(ANDROID_LOG_INFO, LOG_TAG, "Thread %d finished l1\n", threadId);
+                    //_barrier.arrive_and_wait();
 
                     _W2.dotAddActivateThread(_tmp2, _B2, _tmp1, ReLU, numberOfThreads, threadId);
-                    _barrier.arrive_and_wait();
+                    //_barrier.arrive_and_wait();
 
                     _W3.dotAddActivateThread(_tmp1, _B3, _tmp2, ReLU, numberOfThreads, threadId);
-                    _barrier.arrive_and_wait();
+                    //_barrier.arrive_and_wait();
 
                     _W4.dotAddActivateThread(_tmp2, _B4, _output, identity, numberOfThreads, threadId);
-                    _barrier.arrive_and_wait();
+                    //_barrier.arrive_and_wait();
 
                     _semaphore.acquire();
                 }
@@ -149,19 +156,19 @@ namespace Models
                 _semaphore.release(numberOfThreads - 1);
 
                 _W0.dotAddActivateThread(_input, _B0, _tmp1, ReLU, numberOfThreads, 0);
-                _barrier.arrive_and_wait();
+                //_barrier.arrive_and_wait();
 
                 _W1.dotAddActivateThread(_tmp1, _B1, _tmp2, ReLU, numberOfThreads, 0);
-                _barrier.arrive_and_wait();
+                //_barrier.arrive_and_wait();
 
                 _W2.dotAddActivateThread(_tmp2, _B2, _tmp1, ReLU, numberOfThreads, 0);
-                _barrier.arrive_and_wait();
+                //_barrier.arrive_and_wait();
 
                 _W3.dotAddActivateThread(_tmp1, _B3, _tmp2, ReLU, numberOfThreads, 0);
-                _barrier.arrive_and_wait();
+                //_barrier.arrive_and_wait();
 
                 _W4.dotAddActivateThread(_tmp2, _B4, _output, identity, numberOfThreads, 0);
-                _barrier.arrive_and_wait();
+                //_barrier.arrive_and_wait();
 
                 return _output.argmax();
             }

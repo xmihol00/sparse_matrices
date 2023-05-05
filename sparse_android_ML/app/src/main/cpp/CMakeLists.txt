@@ -51,7 +51,8 @@ endif()
 
 target_link_libraries( # Specifies the target library.
         sparseandroidml
-
+        neuralnetworks # NNAPI
+        android
         # Links the target library to the log library
         # included in the NDK.
         ${log-lib})

@@ -70,7 +70,7 @@
             android:id="@+id/classifyTFQuantizedBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Classify TF quantized"
+            android:text="Classify TF optimized"
             android:layout_marginHorizontal="2dp"
             android:layout_weight="1"/>
     </LinearLayout>

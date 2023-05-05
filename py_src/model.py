@@ -162,9 +162,9 @@ model = tf.keras.models.Sequential(
 
 # train model
 model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
-#model.fit(X_train, y_train, epochs=100, batch_size=128, validation_split=0.15, 
-#          callbacks=[tf.keras.callbacks.EarlyStopping(patience=4, restore_best_weights=True, monitor="val_accuracy", mode="max"),
-#                     SegmentSparsePatternCallback(32, 8)])
+model.fit(X_train, y_train, epochs=100, batch_size=128, validation_split=0.15, 
+          callbacks=[tf.keras.callbacks.EarlyStopping(patience=4, restore_best_weights=True, monitor="val_accuracy", mode="max")])#,
+                     #SegmentSparsePatternCallback(32, 8)])
 
 # evaluate model
 model.evaluate(X_test, y_test)
@@ -179,11 +179,19 @@ for i, layer in enumerate(layers):
 
 # convert the model
 converter = tf.lite.TFLiteConverter.from_keras_model(model) 
-converter.optimizations = [tf.lite.Optimize.DEFAULT]
 lite_model = converter.convert()
 
 # save the basic model
-with open("sparse_android_ML/app/src/main/ml/mnist.tflite", 'wb') as f:
+with open("models/mnist.tflite", 'wb') as f:
+    f.write(lite_model)
+
+# convert the model
+converter = tf.lite.TFLiteConverter.from_keras_model(model) 
+converter.optimizations = [tf.lite.Optimize.DEFAULT]
+lite_model = converter.convert()
+
+# save the optimized model
+with open("models/mnist_optimized.tflite", 'wb') as f:
     f.write(lite_model)
 
 converter = tf.lite.TFLiteConverter.from_keras_model(model)
@@ -194,15 +202,15 @@ converter.inference_output_type = tf.int8
 converter.representative_dataset = lambda x=X_train: representative_dataset(x)
 lite_model = converter.convert()
 
-# save the optimized model
-with open("sparse_android_ML/app/src/main/assets/mnist_optimized.tflite", 'wb') as f:
+# save the quantized model
+with open("models/mnist_quantized.tflite", 'wb') as f:
     f.write(lite_model)
 
 converter.target_spec.experimental_supported_backends = "GPU"
 lite_model = converter.convert()
 
-# save the optimized model for GPU
-with open("sparse_android_ML/app/src/main/assets/mnist_optimized_gpu.tflite", 'wb') as f:
+# save the quantized model for GPU
+with open("models/mnist_quantized_gpu.tflite", 'wb') as f:
     f.write(lite_model)
 
         
