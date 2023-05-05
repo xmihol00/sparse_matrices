@@ -1,9 +1,4 @@
 #include "block4in16_sparse.h"
-#if PHONE
-    #include <arm_neon.h>
-#else
-    #include "arm_neon_.h"
-#endif
 
 using namespace std;
 using namespace Matrix;

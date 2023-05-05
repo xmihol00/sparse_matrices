@@ -58,6 +58,7 @@
         "cinttypes": "cpp",
         "ratio": "cpp",
         "thread": "cpp",
-        "barrier": "cpp"
+        "barrier": "cpp",
+        "semaphore": "cpp"
     },
 }

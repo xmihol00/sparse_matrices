@@ -4,7 +4,8 @@
 using namespace std;
 using namespace Matrix;
 
-Dense::Dense(string fileName, DimensionMajorityEnum dimMajority, uint16_t bytePadding) : Base(dimMajority), _bytePadding{bytePadding}
+Dense::Dense(string fileName, DimensionMajorityEnum dimMajority, uint16_t bytePadding, uint8_t threadPadding) : 
+    Base(dimMajority), _bytePadding{bytePadding}, _threadPadding{threadPadding}
 {
     if (fileName.ends_with(".csv"))
     {
@@ -38,6 +39,13 @@ Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority,
 
 Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority) : 
     Dense(rows, columns, dimMajority, 0, nullptr) {}
+
+Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, uint8_t threadPadding) :
+    Base(rows, columns, dimMajority), _bytePadding{0}, _threadPadding{threadPadding}
+{
+    uint32_t padding = (_threadPadding - _columns % _threadPadding) * (_columns % _threadPadding) * _columns * sizeof(float); // FIMXE: might not work for all majorities
+    _byteMatrix = new byte[_size + padding]();
+}
 
 Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority, uint16_t bytePadding) : 
     Dense(rows, columns, dimMajority, bytePadding, nullptr) {}
@@ -92,6 +100,23 @@ float &Dense::operator()(uint16_t rowIndex, uint16_t columnIndex)
     throw invalid_argument(_UNSUPPORTED_MAJORITY);
 }
 
+void Dense::setFloatMatrix(float *data, uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority)
+{
+    _floatMatrix = data;
+    _rows = rows;
+    _columns = columns;
+    _dimMajority = dimMajority;
+}
+
+void Dense::clear()
+{
+    _floatMatrix = nullptr;
+    _rows = 0;
+    _columns = 0;
+    _size = 0;
+    _dimMajority = FILE_DETERMINED;
+}
+
 void Dense::loadCSV(string fileName)
 {
     ifstream file(fileName);
@@ -102,7 +127,8 @@ void Dense::loadCSV(string fileName)
         _columns = count(row.begin(), row.end(), ',') + 1;
         _rows = count(istreambuf_iterator<char>(file), istreambuf_iterator<char>(), '\n') + 1;
         _size = _columns * _rows * sizeof(float);
-        _byteMatrix = new byte[_size + _bytePadding]();
+        uint32_t threadPadding = (_threadPadding - _columns % _threadPadding) * (_columns % _threadPadding) * _columns * sizeof(float); // FIMXE: might not work for all majorities
+        _byteMatrix = new byte[_size + _bytePadding + threadPadding]();
         
         file.clear();
         file.seekg(0);
@@ -234,6 +260,157 @@ Dense Dense::dot(Dense &operandMatrix)
     return targetMatrix;
 }
 
+void Dense::dotNEON(Dense &operandMatrix, Dense &targetMatrix)
+{
+    if (_dimMajority == ROW_MAJOR)
+    {
+        if (operandMatrix._dimMajority == COLUMN_MAJOR)
+        {
+            for (uint16_t i = 0; i < operandMatrix._columns; i++)
+            {
+                float *column = &operandMatrix._floatMatrix[i * operandMatrix._rows];
+                float *row = _floatMatrix;
+                for (uint16_t j = 0; j < _rows; j++)
+                {
+                    float32x4_t accumulator = vdupq_n_f32(0);
+                    for (uint16_t k = 0; k < _columns >> 5; k++)
+                    {
+                        float32x4_t a = vld1q_f32(row);
+                        float32x4_t b = vld1q_f32(column);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 4);
+                        b = vld1q_f32(column + 4);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 8);
+                        b = vld1q_f32(column + 8);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 12);
+                        b = vld1q_f32(column + 12);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 16);
+                        b = vld1q_f32(column + 16);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 20);
+                        b = vld1q_f32(column + 20);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 24);
+                        b = vld1q_f32(column + 24);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 28);
+                        b = vld1q_f32(column + 28);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        row += 32;
+                        column += 32;
+                    }
+                    
+                    targetMatrix._floatMatrix[i * _rows + j] = accumulator[0] + accumulator[1] + accumulator[2] + accumulator[3];
+                    column -= _columns;
+                }
+            }
+        }
+    }
+}
+
+Dense Dense::dotNEON(Dense &operandMatrix)
+{
+    Dense targetMatrix(_rows, operandMatrix._columns, COLUMN_MAJOR);
+    dotNEON(operandMatrix, targetMatrix);
+
+    return targetMatrix;
+}
+
+void Dense::dotNEONThread(Dense &operandMatrix, Dense &targetMatrix, uint8_t numberOfThreads, uint8_t threadId)
+{
+    if (_dimMajority == ROW_MAJOR)
+    {
+        if (operandMatrix._dimMajority == COLUMN_MAJOR)
+        {
+            float *column = operandMatrix._floatMatrix;
+            float *target = targetMatrix._floatMatrix + threadId * targetMatrix._rows / numberOfThreads;
+            for (uint16_t i = 0; i < operandMatrix._columns; i++)
+            {
+                float *row = _floatMatrix + _columns * threadId * _rows / numberOfThreads;
+                for (uint16_t j = 0; j < _rows / numberOfThreads; j++)
+                {
+                    float32x4_t accumulator = vdupq_n_f32(0);
+                    for (uint16_t k = 0; k < _columns >> 5; k++)
+                    {
+                        float32x4_t a = vld1q_f32(row);
+                        float32x4_t b = vld1q_f32(column);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 4);
+                        b = vld1q_f32(column + 4);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 8);
+                        b = vld1q_f32(column + 8);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 12);
+                        b = vld1q_f32(column + 12);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 16);
+                        b = vld1q_f32(column + 16);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 20);
+                        b = vld1q_f32(column + 20);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 24);
+                        b = vld1q_f32(column + 24);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 28);
+                        b = vld1q_f32(column + 28);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        row += 32;
+                        column += 32;
+                    }
+                    
+                    target[j] = accumulator[0] + accumulator[1] + accumulator[2] + accumulator[3];
+                    column -= _columns;
+                }
+
+                target += targetMatrix._rows;
+                column += operandMatrix._rows;
+            }
+        }
+    }
+}
+
+void Dense::dotNEONThreads(Dense &operandMatrix, Dense &targetMatrix, uint8_t numberOfThreads)
+{
+    vector<thread> threads(numberOfThreads);
+    for (uint8_t i = 0; i < numberOfThreads; i++)
+    {
+        threads[i] = thread(&Dense::dotNEONThread, this, ref(operandMatrix), ref(targetMatrix), numberOfThreads, i);
+    }
+
+    for (uint8_t i = 0; i < numberOfThreads; i++)
+    {
+        threads[i].join();
+    }
+}
+
+Dense Dense::dotNEONThreads(Dense &operandMatrix, uint8_t numberOfThreads)
+{
+    Dense targetMatrix(_rows, operandMatrix._columns, COLUMN_MAJOR);
+    dotNEONThreads(operandMatrix, targetMatrix, numberOfThreads);
+
+    return targetMatrix;
+}
 
 void Dense::dotGPU(Dense &operandMatrix, Dense &targetMatrix)
 {
@@ -265,6 +442,167 @@ Dense Dense::dotGPUCuBLAS(Dense &operandMatrix)
 {
     Dense targetMatrix(_rows, operandMatrix._columns, COLUMN_MAJOR);
     dotGPUCuBLAS(operandMatrix, targetMatrix);
+
+    return targetMatrix;
+}
+
+void Dense::dotAddActivate(Dense &dotMatrix, Dense &addMatrix, Dense &targetMatrix, float (*activationFunction)(float))
+{
+    if (_dimMajority == ROW_MAJOR)
+    {
+        if (dotMatrix._dimMajority == COLUMN_MAJOR && addMatrix._dimMajority == COLUMN_MAJOR)
+        {
+            for (uint16_t i = 0; i < dotMatrix._columns; i++)
+            {
+                float *column = &dotMatrix._floatMatrix[i * dotMatrix._rows];
+                float *row = _floatMatrix;
+                for (uint16_t j = 0; j < _rows; j++)
+                {
+                    float32x4_t accumulator = vdupq_n_f32(0);
+                    for (uint16_t k = 0; k < _columns >> 5; k++)
+                    {
+                        float32x4_t a = vld1q_f32(row);
+                        float32x4_t b = vld1q_f32(column);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 4);
+                        b = vld1q_f32(column + 4);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 8);
+                        b = vld1q_f32(column + 8);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 12);
+                        b = vld1q_f32(column + 12);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 16);
+                        b = vld1q_f32(column + 16);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 20);
+                        b = vld1q_f32(column + 20);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 24);
+                        b = vld1q_f32(column + 24);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 28);
+                        b = vld1q_f32(column + 28);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        row += 32;
+                        column += 32;
+                    }
+                    
+                    float result = accumulator[0] + accumulator[1] + accumulator[2] + accumulator[3] + addMatrix._floatMatrix[j];
+                    result = activationFunction(result);
+                    targetMatrix._floatMatrix[i * _rows + j] = result;
+                    column -= _columns;
+                }
+            }
+        }
+    }
+}
+
+Dense Dense::dotAddActivate(Dense &dotMatrix, Dense &addMatrix, float (*activationFunction)(float))
+{
+    Dense targetMatrix(_rows, dotMatrix._columns, COLUMN_MAJOR);
+    dotAddActivate(dotMatrix, addMatrix, targetMatrix, activationFunction);
+
+    return targetMatrix;
+}
+
+void Dense::dotAddActivateThread(Dense &dotMatrix, Dense &addMatrix, Dense &targetMatrix, float (*activationFunction)(float),
+                                 uint8_t numberOfThreads, uint8_t threadId)
+{
+    if (_dimMajority == ROW_MAJOR)
+    {
+        if (dotMatrix._dimMajority == COLUMN_MAJOR && addMatrix._dimMajority == COLUMN_MAJOR)
+        {
+            float *dotColumn = dotMatrix._floatMatrix;
+            float *target = targetMatrix._floatMatrix + threadId * _rows / numberOfThreads;
+            float *addColumn = addMatrix._floatMatrix + threadId * _rows / numberOfThreads;
+            for (uint16_t i = 0; i < dotMatrix._columns; i++)
+            {
+                float *row = _floatMatrix + _columns * threadId * _rows / numberOfThreads;
+                for (uint16_t j = 0; j < _rows / numberOfThreads; j++)
+                {
+                    float32x4_t accumulator = vdupq_n_f32(0);
+                    for (uint16_t k = 0; k < _columns >> 5; k++)
+                    {
+                        float32x4_t a = vld1q_f32(row);
+                        float32x4_t b = vld1q_f32(dotColumn);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 4);
+                        b = vld1q_f32(dotColumn + 4);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 8);
+                        b = vld1q_f32(dotColumn + 8);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 12);
+                        b = vld1q_f32(dotColumn + 12);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 16);
+                        b = vld1q_f32(dotColumn + 16);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 20);
+                        b = vld1q_f32(dotColumn + 20);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 24);
+                        b = vld1q_f32(dotColumn + 24);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        a = vld1q_f32(row + 28);
+                        b = vld1q_f32(dotColumn + 28);
+                        accumulator = vmlaq_f32(accumulator, a, b);
+
+                        row += 32;
+                        dotColumn += 32;
+                    }
+                    
+                    float result = accumulator[0] + accumulator[1] + accumulator[2] + accumulator[3] + addColumn[j];
+                    result = activationFunction(result);
+                    target[j] = result;
+                    dotColumn -= _columns;
+                }
+
+                target += targetMatrix._rows;
+                dotColumn += dotMatrix._rows;
+            }
+        }
+    }
+}
+
+void Dense::dotAddActivateThreads(Dense &dotMatrix, Dense &addMatrix, Dense &targetMatrix, float (*activationFunction)(float),
+                                  uint8_t numberOfThreads)
+{
+    vector<thread> threads(numberOfThreads);
+    for (uint8_t i = 0; i < numberOfThreads; i++)
+    {
+        threads[i] = thread(&Dense::dotAddActivateThread, this, ref(dotMatrix), ref(addMatrix), ref(targetMatrix),
+                             activationFunction, numberOfThreads, i);
+    }
+
+    for (auto &thread : threads)
+    {
+        thread.join();
+    }
+}
+
+Dense Dense::dotAddActivateThreads(Dense &dotMatrix, Dense &addMatrix, float (*activationFunction)(float),
+                                   uint8_t numberOfThreads)
+{
+    Dense targetMatrix(_rows, dotMatrix._columns, COLUMN_MAJOR);
+    dotAddActivateThreads(dotMatrix, addMatrix, targetMatrix, activationFunction, numberOfThreads);
 
     return targetMatrix;
 }
@@ -357,6 +695,23 @@ void Dense::argmax(uint8_t axis, Dense &targetMatrix)
             }
         }
     }
+}
+
+uint32_t Dense::argmax()
+{
+    float max = _floatMatrix[0];
+    uint32_t maxIndex = 0;
+
+    for (uint32_t i = 1; i < _columns * _rows; i++)
+    {
+        if (_floatMatrix[i] > max)
+        {
+            max = _floatMatrix[i];
+            maxIndex = i;
+        }
+    }
+
+    return maxIndex;
 }
 
 Dense Dense::argmax(uint8_t axis)

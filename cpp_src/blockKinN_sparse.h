@@ -136,6 +136,7 @@ namespace Matrix
             void dotPart(Dense &operandMatrix, Dense &targetMatrix, uint8_t threadCount, uint8_t threadId)
             {
                 float accumulators[N] = { 0.0f, };
+                float acc = 0.0f;
 
                 if (_dimMajority == ROW_MAJOR)
                 {
@@ -174,7 +175,8 @@ namespace Matrix
                                             #pragma GCC unroll 4
                                             for (uint8_t n = 0; n < 4; n++)
                                             {
-                                                accumulators[indices[n]] += a[n];
+                                                acc += a[n];
+                                                //accumulators[indices[n]] += a[n];
                                             }
 
                                             row += 4;
@@ -196,6 +198,7 @@ namespace Matrix
                                 }
                                 target += N;
                             }
+                            target[0] = acc;
                             target += targetPadding;
                             column += operandMatrix._rows;
                         }
@@ -439,7 +442,7 @@ namespace Matrix
                                             for (uint8_t n = 0; n < 4; n++)
                                             {
                                                 accumulators[indices[n]] += a[n];
-                                            }
+                                            }                                        
 
                                             row += 4;
                                             indices += 4;

@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.example.sparseandroidml.databinding.ActivityMainBinding
-import com.example.sparseandroidml.ml.Mnist
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 import java.io.*
@@ -19,6 +18,7 @@ import android.graphics.Paint
 import java.text.DecimalFormat
 import kotlin.system.measureNanoTime
 import android.content.Context
+import com.example.sparseandroidml.ml.MnistOpt
 import org.tensorflow.lite.Interpreter
 import java.io.IOException
 import java.nio.ByteBuffer
@@ -270,7 +270,7 @@ class MainActivity : AppCompatActivity() {
         //saveConfigToInternalStorage()
 
         optimizedModel =  TFLiteModel(this, "mnist_optimized.tflite")
-        val model = Mnist.newInstance(this)
+        val model = MnistOpt.newInstance(this)
         val inputFeature = TensorBuffer.createFixedSize(intArrayOf(1, 1024), DataType.FLOAT32)
 
         with (binding.clearBtn) {
@@ -312,6 +312,42 @@ class MainActivity : AppCompatActivity() {
                     for (i in 0 until _runs)
                     {
                         predictedIndex = optimizedModel.runInference(pixelArray)
+                    }
+                }
+                val formater = DecimalFormat("#.###")
+                binding.resultText.text = predictedIndex.toString()
+                binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
+                binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
+            }
+        }
+
+        with (binding.classifyDense) {
+            setOnClickListener {
+                val pixelArray = getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
+
+                var predictedIndex : Int = 0
+                val elapsed = measureNanoTime {
+                    for (i in 0 until _runs)
+                    {
+                        predictedIndex = runDenseModel(pixelArray)
+                    }
+                }
+                val formater = DecimalFormat("#.###")
+                binding.resultText.text = predictedIndex.toString()
+                binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
+                binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
+            }
+        }
+
+        with (binding.classifyDenseNEON) {
+            setOnClickListener {
+                val pixelArray = getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
+
+                var predictedIndex : Int = 0
+                val elapsed = measureNanoTime {
+                    for (i in 0 until _runs)
+                    {
+                        predictedIndex = runDenseModelOptimized(pixelArray)
                     }
                 }
                 val formater = DecimalFormat("#.###")
@@ -387,6 +423,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     external fun loadModels(): Unit
+    external fun runDenseModel(sample: FloatArray): Int
+    external fun runDenseModelOptimized(sample: FloatArray): Int
     external fun run4in16model(sample: FloatArray): Int
     external fun run2in16model(sample: FloatArray): Int
 

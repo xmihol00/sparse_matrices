@@ -79,6 +79,58 @@ class StructuredColumnSparsityCallback(tf.keras.callbacks.Callback):
             # Update the layer's weights
             layer.set_weights([weights, biases])
 
+class SegmentSparsePatternCallback(tf.keras.callbacks.Callback):
+    def __init__(self, number_of_segments, number_of_sparsified_segments, axis=0, random_factor=0.1, random_init_epochs=5):
+        super().__init__()
+        self.number_of_segments = number_of_segments
+        self.number_of_sparsified_segments = number_of_sparsified_segments
+        self.random_factor = random_factor
+        self.random_init_epochs = random_init_epochs
+        self.axis = axis
+
+    def on_epoch_end(self, epoch, logs=None):
+        for layer in self.model.layers:
+            if isinstance(layer, tf.keras.layers.Dense) and layer != self.model.layers[-1]:
+                weights = layer.get_weights()[0]
+                bias = layer.get_weights()[1]
+                sparsified_weights = self.apply_sparse_pattern(weights, epoch)
+                layer.set_weights([sparsified_weights, bias])
+
+    def apply_sparse_pattern(self, weights, epoch):
+        sparsified_weights = weights.copy()
+
+        if self.axis == 1:
+            for row_idx, row in enumerate(weights):
+                segment_sums = np.zeros(self.number_of_segments)
+                for i in range(self.number_of_segments):
+                    segment_sums[i] = np.sum(np.abs(row[i::self.number_of_segments]))
+                smallest_segments = np.argpartition(segment_sums, self.number_of_sparsified_segments)[:self.number_of_sparsified_segments]
+                sparsified_weights[row_idx] = self.sparsify_row(row, smallest_segments, epoch)
+
+        elif self.axis == 0:
+            for col_idx, col in enumerate(weights.T):
+                segment_sums = np.zeros(self.number_of_segments)
+                for i in range(self.number_of_segments):
+                    segment_sums[i] = np.sum(np.abs(col[i::self.number_of_segments]))
+                smallest_segments = np.argpartition(segment_sums, self.number_of_sparsified_segments)[:self.number_of_sparsified_segments]
+                sparsified_weights[:, col_idx] = self.sparsify_row(col, smallest_segments, epoch)
+
+        return sparsified_weights
+
+    def sparsify_row(self, row, smallest_segments, epoch):
+        sparsified_row = row.copy()
+        if epoch < self.random_init_epochs:
+            avg_magnitude = np.mean(np.abs(row))
+            random_std_dev = avg_magnitude * self.random_factor
+            for i in smallest_segments:
+                sparsified_row[i::self.number_of_segments] = np.random.normal(0, random_std_dev, size=(sparsified_row[i::self.number_of_segments].shape))
+        else:
+            for i in smallest_segments:
+                sparsified_row[i::self.number_of_segments] = 0
+
+        return sparsified_row
+
+
 
 X_train = np.load("datasets/upscaled_mnist_train.npy")
 y_train = idx.convert_from_file("../mnist_ML/mnist/train-labels.idx1-ubyte")
@@ -110,15 +162,24 @@ model = tf.keras.models.Sequential(
 
 # train model
 model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
-model.fit(X_train, y_train, epochs=100, batch_size=128, validation_split=0.15, 
-          callbacks=[tf.keras.callbacks.EarlyStopping(patience=4, restore_best_weights=True, monitor="val_accuracy", mode="max"),
-                     StructuredColumnSparsityCallback(2, 16)])
+#model.fit(X_train, y_train, epochs=100, batch_size=128, validation_split=0.15, 
+#          callbacks=[tf.keras.callbacks.EarlyStopping(patience=4, restore_best_weights=True, monitor="val_accuracy", mode="max"),
+#                     SegmentSparsePatternCallback(32, 8)])
 
 # evaluate model
 model.evaluate(X_test, y_test)
 
+# save weights and biases to csv files
+layers = model.layers
+for i, layer in enumerate(layers):
+    if isinstance(layer, tf.keras.layers.Dense):
+        weights, biases = layer.get_weights()
+        np.savetxt(f"weights/weights_l{i}.csv", weights.T, delimiter=',', fmt="% .7f")
+        np.savetxt(f"weights/biases_l{i}.csv", biases, delimiter=',', fmt="% .7f")
+
 # convert the model
 converter = tf.lite.TFLiteConverter.from_keras_model(model) 
+converter.optimizations = [tf.lite.Optimize.DEFAULT]
 lite_model = converter.convert()
 
 # save the basic model
@@ -134,21 +195,14 @@ converter.representative_dataset = lambda x=X_train: representative_dataset(x)
 lite_model = converter.convert()
 
 # save the optimized model
-with open("sparse_android_ML/app/src/main/ml/mnist_optimized.tflite", 'wb') as f:
+with open("sparse_android_ML/app/src/main/assets/mnist_optimized.tflite", 'wb') as f:
     f.write(lite_model)
 
 converter.target_spec.experimental_supported_backends = "GPU"
 lite_model = converter.convert()
 
 # save the optimized model for GPU
-with open("sparse_android_ML/app/src/main/ml/mnist_optimized_gpu.tflite", 'wb') as f:
+with open("sparse_android_ML/app/src/main/assets/mnist_optimized_gpu.tflite", 'wb') as f:
     f.write(lite_model)
 
-# save weights and biases to csv files
-layers = model.layers
-for i, layer in enumerate(layers):
-    if isinstance(layer, tf.keras.layers.Dense):
-        weights, biases = layer.get_weights()
-        np.savetxt(f"weights/weights_l{i}.csv", weights.T, delimiter=',', fmt="%.7f")
-        np.savetxt(f"weights/biases_l{i}.csv", biases, delimiter=',', fmt="%.7f")
         

@@ -52,43 +52,79 @@
 
     </LinearLayout>
 
-    <Button
-        android:id="@+id/classifyTFDefaultBtn"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Classify TF default"
-        android:layout_marginHorizontal="1dp"/>
+        android:orientation="horizontal"
+        android:layout_marginHorizontal="1dp"
+        android:weightSum="2">
+        <Button
+            android:id="@+id/classifyTFDefaultBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Classify TF default"
+            android:layout_marginHorizontal="2dp"
+            android:layout_weight="1"/>
 
-    <Button
-        android:id="@+id/classifyTFQuantizedBtn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Classify TF quantized"
-        android:layout_marginHorizontal="1dp"/>
+        <Button
+            android:id="@+id/classifyTFQuantizedBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Classify TF quantized"
+            android:layout_marginHorizontal="2dp"
+            android:layout_weight="1"/>
+    </LinearLayout>
 
-    <Button
-        android:id="@+id/classify4in16Btn"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Classify 4 in 16"
-        android:layout_marginHorizontal="2dp"
-        android:layout_marginTop="1dp"/>
+        android:orientation="horizontal"
+        android:weightSum="2">
+        <Button
+            android:id="@+id/classifyDense"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Classify Dense"
+            android:layout_marginHorizontal="2dp"
+            android:layout_weight="1"/>
 
-    <Button
-        android:id="@+id/classify2in16Btn"
+        <Button
+            android:id="@+id/classifyDenseNEON"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Classify Dense NEON"
+            android:layout_marginHorizontal="2dp"
+            android:layout_weight="1"/>
+    </LinearLayout>
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Classify 2 in 16"
-        android:layout_marginHorizontal="2dp"
-        android:layout_marginTop="1dp"/>
+        android:orientation="horizontal"
+        android:weightSum="2">
+        <Button
+            android:id="@+id/classify4in16Btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Classify 4 in 16"
+            android:layout_marginHorizontal="2dp"
+            android:layout_weight="1"/>
+
+        <Button
+            android:id="@+id/classify2in16Btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Classify 2 in 16"
+            android:layout_marginHorizontal="2dp"
+            android:layout_weight="1"/>
+    </LinearLayout>
 
     <Button
         android:id="@+id/clearBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Clear"
-        android:layout_marginHorizontal="2dp"
-        android:layout_marginTop="1dp"/>
+        android:layout_marginHorizontal="2dp" />
 
     <LinearLayout
         android:layout_width="match_parent"

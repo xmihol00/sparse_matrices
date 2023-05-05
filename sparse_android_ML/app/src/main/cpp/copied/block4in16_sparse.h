@@ -3,6 +3,11 @@
 
 #include "sparse.h"
 #include "dense.h"
+#if PHONE
+    #include <arm_neon.h>
+#else
+    #include "arm_neon_.h"
+#endif
 
 namespace Matrix 
 {
