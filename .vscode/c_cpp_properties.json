@@ -2,8 +2,9 @@
     "env": {
         "myDefaultIncludePath": [
             "${workspaceFolder}",
-            "${workspaceFolder}/include",
-            "/usr/local/cuda-10.2/targets/x86_64-linux/include/"
+            "${workspaceFolder}/**",
+            "/usr/local/cuda-10.2/targets/x86_64-linux/include/",
+            "/home/david/Android/Sdk/ndk/23.1.7779620/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/android/"
         ]
     },
     "configurations": [
@@ -13,14 +14,16 @@
             "cppStandard": "c++20",
             "browse": {
                 "path": [
-                    "${workspaceFolder}"
+                    "${workspaceFolder}/",
+                    "${workspaceFolder}/**"
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
             },
             "compilerPath": "/usr/bin/g++-11",
             "includePath": [
-                "${default}"
+                "/home/david/Android/Sdk/ndk/23.1.7779620/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/android/",
+                "${workspaceFolder}/**"
             ]
         }
     ],

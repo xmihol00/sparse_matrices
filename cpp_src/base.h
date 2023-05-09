@@ -59,6 +59,7 @@ namespace Matrix
 
             inline uint16_t getRows() { return _rows; }
             inline uint16_t getColumns() { return _columns; }
+            inline uint64_t getSize() { return _size; }
     };    
 }
 

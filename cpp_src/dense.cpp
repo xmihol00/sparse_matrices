@@ -218,14 +218,39 @@ void Dense::printColumn(uint16_t columnIndex, uint8_t precision)
     }
 }
 
-void Dense::saveAsBinary(std::string fileName)
+void Dense::saveAsBinary(string fileName)
 {
     (void)fileName;
 }
 
-void Dense::saveAsCSV(std::string fileName)
+void Dense::saveAsCSV(string fileName)
 {
     (void)fileName;
+}
+
+void Dense::dumpData(string fileName)
+{
+    ofstream file(fileName, ios_base::binary);
+    if (file.is_open())
+    {
+        file.write(reinterpret_cast<char *>(_floatMatrix), _size);
+        file.close();
+    }
+}
+
+void Dense::loadDumpedData(string fileName, uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority)
+{
+    ifstream file(fileName, ios_base::binary);
+    if (file.is_open())
+    {
+        _rows = rows;
+        _columns = columns;
+        _dimMajority = dimMajority;
+        _size = _rows * _columns * sizeof(float);
+        _byteMatrix = new byte[_size + _bytePadding]();
+        file.read(reinterpret_cast<char *>(_floatMatrix), _size);
+        file.close();
+    }
 }
 
 void Dense::dot(Dense &operandMatrix, Dense &targetMatrix)

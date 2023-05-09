@@ -59,6 +59,7 @@
         "ratio": "cpp",
         "thread": "cpp",
         "barrier": "cpp",
-        "semaphore": "cpp"
+        "semaphore": "cpp",
+        "stop_token": "cpp"
     },
 }

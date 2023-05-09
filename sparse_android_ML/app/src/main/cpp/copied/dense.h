@@ -44,6 +44,7 @@ namespace Matrix
             Dense &operator=(Dense &&other);
             float &operator()(uint16_t rowIndex, uint16_t columnIndex);
 
+            float *getData();
             void setFloatMatrix(float *data, uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority);
             void clear();
 

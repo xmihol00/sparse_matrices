@@ -17,6 +17,8 @@ project("sparseandroidml")
 file(GLOB copied_src CONFIGURE_DEPENDS
             "copied/*.h"
             "copied/*.cpp"
+            "NNAPI_models.cpp"
+            "NNAPI_models.h"
             )
 
 add_library( # Sets the name of the library.

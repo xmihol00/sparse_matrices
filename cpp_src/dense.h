@@ -40,6 +40,7 @@ namespace Matrix
             Dense &operator=(Dense &&other);
             float &operator()(uint16_t rowIndex, uint16_t columnIndex);
 
+            float *getData();
             void setFloatMatrix(float *data, uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority);
             void clear();
 
@@ -48,6 +49,8 @@ namespace Matrix
 
             virtual void saveAsBinary(std::string fileName) override;
             virtual void saveAsCSV(std::string fileName) override;
+            void dumpData(std::string fileName);
+            void loadDumpedData(std::string fileName, uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority);
 
             void add(Dense &operandMatrix);
 

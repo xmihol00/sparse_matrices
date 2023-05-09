@@ -99,6 +99,11 @@ float &Dense::operator()(uint16_t rowIndex, uint16_t columnIndex)
     throw invalid_argument(_UNSUPPORTED_MAJORITY);
 }
 
+float *Dense::getData()
+{
+    return _floatMatrix;
+}
+
 void Dense::setFloatMatrix(float *data, uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority)
 {
     _floatMatrix = data;

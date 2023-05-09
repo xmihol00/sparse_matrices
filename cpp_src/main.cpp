@@ -16,6 +16,12 @@ using namespace Models;
 
 int main()
 {   
+    Dense test;
+    test.loadDumpedData("dumps/W0.bin", 1024, 1024, ROW_MAJOR);
+    cout << test(0, 0) << endl;
+    cout << test(0, 1) << endl;
+    cout << test(1, 0) << endl;
+
 #define MUL_TEST 0
 #if MUL_TEST
     Dense rowMat = Dense("weights/weights_l0.csv", ROW_MAJOR);
@@ -42,7 +48,7 @@ int main()
     result.printMatrix(7);
 #endif
 
-#define NETWORK_TEST 1
+#define NETWORK_TEST 0
 #if NETWORK_TEST
     Dense groundTruth("datasets/mnist_y_test.csv", COLUMN_MAJOR);
 

@@ -153,7 +153,8 @@ class MainActivity : AppCompatActivity() {
         val assetManager = assets
         val filenames = arrayOf("mnist_X_test.csv", "mnist_X_test_T.csv", "biases_l0.csv", "biases_l1.csv", "biases_l2.csv",
                                 "biases_l3.csv", "biases_l4.csv", "weights_l0.csv", "weights_l1.csv", "weights_l2.csv",
-                                "weights_l3.csv", "weights_l4.csv", "mnist_y_test.csv", "mnist_optimized.tflite")
+                                "weights_l3.csv", "weights_l4.csv", "mnist_y_test.csv", "mnist_optimized.tflite", 
+                                "B0.bin", "B1.bin", "B2.bin", "B3.bin", "B4.bin", "W0.bin", "W1.bin", "W2.bin", "W3.bin", "W4.bin")
         for (filename in filenames)
         {
             val outFile = File(filesDir, filename)
@@ -280,7 +281,7 @@ class MainActivity : AppCompatActivity() {
         with (binding.clearBtn) {
             setOnClickListener {
                 binding.digitDrawView.clearCanvas()
-                binding.resultText.text = testMLAPI()
+                binding.resultText.text = "" //testMLAPI()
                 binding.performanceAverageText.text = ""
                 binding.performanceTotalText.text = ""
             }
@@ -386,7 +387,8 @@ class MainActivity : AppCompatActivity() {
                 val elapsed = measureNanoTime {
                     for (i in 0 until _runs)
                     {
-                        predictedIndex = run4in16model(pixelArray)
+                        //predictedIndex = run4in16model(pixelArray)
+                        predictedIndex = runDenseModelNNAPI(pixelArray)
                     }
                 }
                 val formater = DecimalFormat("#.###")
@@ -448,8 +450,8 @@ class MainActivity : AppCompatActivity() {
     external fun runDenseModelOptimized(sample: FloatArray): Int
     external fun run4in16model(sample: FloatArray): Int
     external fun run2in16model(sample: FloatArray): Int
+    external fun runDenseModelNNAPI(sample: FloatArray): Int
     external fun testMLAPI(): String
-    external fun testABS(): String
 
     companion object {
         // Used to load the 'sparseandroidml' library on application startup.
