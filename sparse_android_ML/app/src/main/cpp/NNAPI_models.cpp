@@ -35,7 +35,6 @@ NNAPI_Mnist32x32_4L::~NNAPI_Mnist32x32_4L()
 void NNAPI_Mnist32x32_4L::loadToSharedMemory(std::string name, ANeuralNetworksMemory *&memory, Matrix::Dense &matrix)
 {
     int fd = ASharedMemory_create(name.c_str(), matrix.getSize());
-    __android_log_print(ANDROID_LOG_ERROR, "NNAPI_Mnist32x32_4L", "%s fd: %d", name.c_str(), fd);
     int status = ANeuralNetworksMemory_createFromFd(matrix.getSize(), PROT_READ | PROT_WRITE, fd, 0, &memory);
     if (status != ANEURALNETWORKS_NO_ERROR)
     {
@@ -69,7 +68,7 @@ void NNAPI_Mnist32x32_4L::load(string path)
     int status = ANeuralNetworksModel_create(&_model);
     if (status != ANEURALNETWORKS_NO_ERROR)
     {
-        __android_log_print(ANDROID_LOG_ERROR, "NNAPI_Mnist32x32_4L", "Failed to create model");
+        __android_log_print(ANDROID_LOG_ERROR, "NNAPI_Mnist32x32_4L", "Failed to create modelDense");
     }
 
     uint32_t hiddenWeightsDimensions[2] = { 1024U, 1024U };
@@ -459,7 +458,7 @@ void NNAPI_Mnist32x32_4L::load(string path)
     status = ANeuralNetworksModel_finish(_model);
     if (status != ANEURALNETWORKS_NO_ERROR)
     {
-        __android_log_print(ANDROID_LOG_ERROR, "NNAPI_Mnist32x32_4L", "Failed to finish model");
+        __android_log_print(ANDROID_LOG_ERROR, "NNAPI_Mnist32x32_4L", "Failed to finish modelDense");
     }
 
     status = ANeuralNetworksCompilation_create(_model, &_compilation);

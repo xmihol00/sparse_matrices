@@ -15,22 +15,30 @@ Mnist32x32_4L::Mnist32x32_4L(string weightsFileTemplate, string biasesFileTempla
       _B1{biasesFileTemplate + "l1.csv", COLUMN_MAJOR},
       _B2{biasesFileTemplate + "l2.csv", COLUMN_MAJOR},
       _B3{biasesFileTemplate + "l3.csv", COLUMN_MAJOR},
-      _B4{biasesFileTemplate + "l4.csv", COLUMN_MAJOR}
+      _B4{biasesFileTemplate + "l4.csv", COLUMN_MAJOR},
+      _output{1024, 1, COLUMN_MAJOR}
 {}
+
+Mnist32x32_4L::~Mnist32x32_4L()
+{
+    
+}
 
 void Mnist32x32_4L::load(std::string weightsFileTemplate, std::string biasesFileTemplate)
 {
-    _W0 = Dense{weightsFileTemplate + "l0.csv", Matrix::ROW_MAJOR};
-    _W1 = Dense{weightsFileTemplate + "l1.csv", Matrix::ROW_MAJOR};
-    _W2 = Dense{weightsFileTemplate + "l2.csv", Matrix::ROW_MAJOR};
-    _W3 = Dense{weightsFileTemplate + "l3.csv", Matrix::ROW_MAJOR};
-    _W4 = Dense{weightsFileTemplate + "l4.csv", Matrix::ROW_MAJOR};
+    _W0 = Dense{weightsFileTemplate + "l0.csv", ROW_MAJOR};
+    _W1 = Dense{weightsFileTemplate + "l1.csv", ROW_MAJOR};
+    _W2 = Dense{weightsFileTemplate + "l2.csv", ROW_MAJOR};
+    _W3 = Dense{weightsFileTemplate + "l3.csv", ROW_MAJOR};
+    _W4 = Dense{weightsFileTemplate + "l4.csv", ROW_MAJOR};
 
-    _B0 = Dense{biasesFileTemplate + "l0.csv", Matrix::COLUMN_MAJOR};
-    _B1 = Dense{biasesFileTemplate + "l1.csv", Matrix::COLUMN_MAJOR};
-    _B2 = Dense{biasesFileTemplate + "l2.csv", Matrix::COLUMN_MAJOR};
-    _B3 = Dense{biasesFileTemplate + "l3.csv", Matrix::COLUMN_MAJOR};
-    _B4 = Dense{biasesFileTemplate + "l4.csv", Matrix::COLUMN_MAJOR};
+    _B0 = Dense{biasesFileTemplate + "l0.csv", COLUMN_MAJOR};
+    _B1 = Dense{biasesFileTemplate + "l1.csv", COLUMN_MAJOR};
+    _B2 = Dense{biasesFileTemplate + "l2.csv", COLUMN_MAJOR};
+    _B3 = Dense{biasesFileTemplate + "l3.csv", COLUMN_MAJOR};
+    _B4 = Dense{biasesFileTemplate + "l4.csv", COLUMN_MAJOR};
+
+    _output = Dense{1024, 1, COLUMN_MAJOR};
 }
 
 void Mnist32x32_4L::predict(Dense &input, Dense &output)
@@ -80,6 +88,12 @@ Dense Mnist32x32_4L::predictOptimized(Matrix::Dense &input)
     Dense output(_B4.getRows(), input.getColumns(), COLUMN_MAJOR);
     predictOptimized(input, output);
     return output;
+}
+
+uint8_t Mnist32x32_4L::predictOptimizedRaw(float *input)
+{
+    _input = Dense(1024, 1, COLUMN_MAJOR, reinterpret_cast<byte*>(input));
+    predictOptimized(_input, _output);
 }
 
 Mnist32x32_4L_4in16Sparse::Mnist32x32_4L_4in16Sparse(string weightsFileTemplate, string biasesFileTemplate)

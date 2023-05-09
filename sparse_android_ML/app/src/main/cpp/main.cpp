@@ -9,18 +9,21 @@
 #include "copied/dense.h"
 #include "NNAPI_models.h"
 
+#include <android/NeuralNetworks.h>
+#include <android/NeuralNetworksTypes.h>
+#include <android/log.h>
+
 using namespace std;
 using namespace Matrix;
 using namespace Models;
 
 static NNAPI_Mnist32x32_4L modelNNAPI;
-static Mnist32x32_4L model;
-static Mnist32x32_4L_Threads<4> modelThreads;
+static Mnist32x32_4L modelDense;
+static Mnist32x32_4L_Threads<8> modelDenseThreads;
 static Mnist32x32_4L_KinMSparse<4, 16> model4in16;
 static Mnist32x32_4L_KinMSparse<4, 16> model2in16;
-
-#include <android/NeuralNetworks.h>
-#include <android/NeuralNetworksTypes.h>
+static Dense X_test;
+static Dense y_test;
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_sparseandroidml_MainActivity_loadModels(
@@ -39,35 +42,46 @@ Java_com_example_sparseandroidml_MainActivity_loadModels(
 
     //model4in16.load(path + "/weights_", path + "/biases_");
     //model2in16.load(path + "/weights_", path + "/biases_");
-    model.load(path + "/weights_", path + "/biases_");
-    modelThreads.load(path + "/weights_", path + "/biases_");
+    modelDense.load(path + "/weights_", path + "/biases_");
+    modelDenseThreads.load(path + "/weights_", path + "/biases_");
     modelNNAPI.load(path);
+
+    X_test = Dense(path + "/mnist_X_test.csv", COLUMN_MAJOR);
+    y_test = Dense(path + "/mnist_y_test.csv", COLUMN_MAJOR);
 }
 
-extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_runDenseModel(JNIEnv* env, jobject context, jfloatArray sample)
+extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_runDenseThreadsSample(JNIEnv* env, jobject context, jfloatArray sample)
 {
     float *floatArrayElements = env->GetFloatArrayElements(sample, nullptr);
 
     //Dense input(1024, 1, Matrix::COLUMN_MAJOR, reinterpret_cast<byte *>(floatArrayElements));
-    //Dense output = model.predict(input);
+    //Dense output = modelDense.predict(input);
     //Dense result = output.argmax(0);
-    uint32_t result = modelThreads.predictRaw(floatArrayElements);
+    uint32_t result = modelDenseThreads.predictRaw(floatArrayElements);
 
     env->ReleaseFloatArrayElements(sample, floatArrayElements, 0);
     //return static_cast<jint>(result(0, 0));
     return static_cast<jint>(result);
 }
+extern "C" JNIEXPORT jint JNICALL  Java_com_example_sparseandroidml_MainActivity_runDenseThreadsTestSet(JNIEnv* env, jobject context)
+{
 
-extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_runDenseModelOptimized(JNIEnv* env, jobject context, jfloatArray sample)
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_runDenseModel(JNIEnv* env, jobject context, jfloatArray sample)
 {
     float *floatArrayElements = env->GetFloatArrayElements(sample, nullptr);
-
-    Dense input(1024, 1, Matrix::COLUMN_MAJOR, reinterpret_cast<byte *>(floatArrayElements));
-    Dense output = model.predictOptimized(input);
-    Dense result = output.argmax(0);
-
+    uint8_t result = modelDense.predictOptimizedRaw(floatArrayElements);
     env->ReleaseFloatArrayElements(sample, floatArrayElements, 0);
-    return static_cast<jint>(result(0, 0));
+    return static_cast<jint>(result);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_com_example_sparseandroidml_MainActivity_runDenseModelTestSet(JNIEnv* env, jobject context)
+{
+    Dense output = modelDense.predictOptimized(X_test);
+    __android_log_print(ANDROID_LOG_ERROR, "NNAPI_Mnist32x32_4L", "%d %d %d %d", X_test.getRows(), X_test.getColumns(), y_test.getRows(), y_test.getColumns());
+    output.argmax(0);
+    __android_log_print(ANDROID_LOG_ERROR, "NNAPI_Mnist32x32_4L", "Accuracy: %f", output.percentageDifference(y_test));
 }
 
 extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_run4in16model(JNIEnv* env, jobject context, jfloatArray sample)
@@ -76,7 +90,7 @@ extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_
 
     Dense input(1024, 1, Matrix::COLUMN_MAJOR, reinterpret_cast<byte *>(floatArrayElements));
     //Dense output = model4in16.predictOptimizedThreads<8>(input);
-    Dense output = model.predictOptimized(input);
+    Dense output = modelDense.predictOptimized(input);
     Dense result = output.argmax(0);
 
     env->ReleaseFloatArrayElements(sample, floatArrayElements, 0);
@@ -90,7 +104,7 @@ Java_com_example_sparseandroidml_MainActivity_run2in16model(JNIEnv* env, jobject
 
     Dense input(1024, 1, Matrix::COLUMN_MAJOR, reinterpret_cast<byte *>(floatArrayElements));
     //Dense output = model2in16.predictOptimized(input);
-    Dense output = model.predictOptimized(input);
+    Dense output = modelDense.predictOptimized(input);
     Dense result = output.argmax(0);
 
     env->ReleaseFloatArrayElements(sample, floatArrayElements, 0);
@@ -174,7 +188,7 @@ extern "C" JNIEXPORT jstring JNICALL Java_com_example_sparseandroidml_MainActivi
     }
     if (ANEURALNETWORKS_NO_ERROR != ANeuralNetworksModel_finish(model))
     {
-        return env->NewStringUTF("finish model");
+        return env->NewStringUTF("finish modelDense");
     }
     ANeuralNetworksCompilation* compilation = nullptr;
     if (ANEURALNETWORKS_NO_ERROR != ANeuralNetworksCompilation_create(model, &compilation))

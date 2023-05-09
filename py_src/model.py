@@ -152,10 +152,10 @@ y_test = tf.keras.utils.to_categorical(y_test, 10)
 # model
 model = tf.keras.models.Sequential(
     [
-        tf.keras.layers.Dense(X_train.shape[1], activation="relu", input_shape=(X_train.shape[1],)), #kernel_regularizer=tf.keras.regularizers.l1(0.00005)),
-        tf.keras.layers.Dense(X_train.shape[1], activation="relu", input_shape=(X_train.shape[1],)), #kernel_regularizer=tf.keras.regularizers.l1(0.00005)),
-        tf.keras.layers.Dense(X_train.shape[1], activation="relu", input_shape=(X_train.shape[1],)), #kernel_regularizer=tf.keras.regularizers.l1(0.00005)),
-        tf.keras.layers.Dense(X_train.shape[1], activation="relu", input_shape=(X_train.shape[1],)), #kernel_regularizer=tf.keras.regularizers.l1(0.00005)),
+        tf.keras.layers.Dense(X_train.shape[1], activation="relu", input_shape=(X_train.shape[1],)),
+        tf.keras.layers.Dense(X_train.shape[1], activation="relu", input_shape=(X_train.shape[1],)),
+        tf.keras.layers.Dense(X_train.shape[1], activation="relu", input_shape=(X_train.shape[1],)),
+        tf.keras.layers.Dense(X_train.shape[1], activation="relu", input_shape=(X_train.shape[1],)),
         tf.keras.layers.Dense(10, activation="softmax"),
     ]
 )
@@ -163,8 +163,8 @@ model = tf.keras.models.Sequential(
 # train model
 model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
 model.fit(X_train, y_train, epochs=100, batch_size=128, validation_split=0.15, 
-          callbacks=[tf.keras.callbacks.EarlyStopping(patience=4, restore_best_weights=True, monitor="val_accuracy", mode="max")])#,
-                     #SegmentSparsePatternCallback(32, 8)])
+          callbacks=[tf.keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True, monitor="val_accuracy", mode="max"),
+                     StructuredColumnSparsityCallback(2, 16)])
 
 # evaluate model
 model.evaluate(X_test, y_test)
@@ -182,7 +182,7 @@ converter = tf.lite.TFLiteConverter.from_keras_model(model)
 lite_model = converter.convert()
 
 # save the basic model
-with open("models/mnist.tflite", 'wb') as f:
+with open("models/default_mnist.tflite", 'wb') as f:
     f.write(lite_model)
 
 # convert the model
@@ -191,7 +191,7 @@ converter.optimizations = [tf.lite.Optimize.DEFAULT]
 lite_model = converter.convert()
 
 # save the optimized model
-with open("models/mnist_optimized.tflite", 'wb') as f:
+with open("models/optimized_mnist.tflite", 'wb') as f:
     f.write(lite_model)
 
 converter = tf.lite.TFLiteConverter.from_keras_model(model)
@@ -203,14 +203,14 @@ converter.representative_dataset = lambda x=X_train: representative_dataset(x)
 lite_model = converter.convert()
 
 # save the quantized model
-with open("models/mnist_quantized.tflite", 'wb') as f:
+with open("models/quantized_mnist.tflite", 'wb') as f:
     f.write(lite_model)
 
 converter.target_spec.experimental_supported_backends = "GPU"
 lite_model = converter.convert()
 
 # save the quantized model for GPU
-with open("models/mnist_quantized_gpu.tflite", 'wb') as f:
+with open("models/quantized_gpu_mnist.tflite", 'wb') as f:
     f.write(lite_model)
 
         

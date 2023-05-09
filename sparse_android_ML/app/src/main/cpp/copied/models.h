@@ -29,11 +29,14 @@ namespace Models
             Matrix::Dense _B2;
             Matrix::Dense _B3;
             Matrix::Dense _B4;
+            
+            Matrix::Dense _input;
+            Matrix::Dense _output;
 
         public:
             Mnist32x32_4L() = default;
             Mnist32x32_4L(std::string weightsFileTemplate, std::string biasesFileTemplate);
-            ~Mnist32x32_4L() = default;
+            ~Mnist32x32_4L();
 
             void load(std::string weightsFileTemplate, std::string biasesFileTemplate);
 
@@ -42,6 +45,8 @@ namespace Models
 
             void predictOptimized(Matrix::Dense &input, Matrix::Dense &output);
             Matrix::Dense predictOptimized(Matrix::Dense &input);
+
+            uint8_t predictOptimizedRaw(float *input);
     };
 
     template <uint8_t numberOfThreads>
