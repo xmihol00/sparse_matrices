@@ -16,7 +16,8 @@ Mnist32x32_4L::Mnist32x32_4L(string weightsFileTemplate, string biasesFileTempla
       _B2{biasesFileTemplate + "l2.csv", COLUMN_MAJOR},
       _B3{biasesFileTemplate + "l3.csv", COLUMN_MAJOR},
       _B4{biasesFileTemplate + "l4.csv", COLUMN_MAJOR},
-      _output{1024, 1, COLUMN_MAJOR}
+      _outputSample{1024, 1, COLUMN_MAJOR},
+      _outputMatrix{10, 10'000, COLUMN_MAJOR}
 {}
 
 Mnist32x32_4L::~Mnist32x32_4L()
@@ -38,7 +39,8 @@ void Mnist32x32_4L::load(std::string weightsFileTemplate, std::string biasesFile
     _B3 = Dense{biasesFileTemplate + "l3.csv", COLUMN_MAJOR};
     _B4 = Dense{biasesFileTemplate + "l4.csv", COLUMN_MAJOR};
 
-    _output = Dense{1024, 1, COLUMN_MAJOR};
+    _outputSample = Dense{1024, 1, COLUMN_MAJOR};
+    _outputMatrix = Dense{10, 10'000, COLUMN_MAJOR};
 }
 
 void Mnist32x32_4L::predict(Dense &input, Dense &output)
@@ -85,15 +87,16 @@ void Mnist32x32_4L::predictOptimized(Matrix::Dense &input, Matrix::Dense &output
 
 Dense Mnist32x32_4L::predictOptimized(Matrix::Dense &input)
 {
-    Dense output(_B4.getRows(), input.getColumns(), COLUMN_MAJOR);
-    predictOptimized(input, output);
-    return output;
+    predictOptimized(input, _outputMatrix);
+    _outputMatrix.printMatrix(3);
+    return _outputMatrix.argmax(0);
 }
 
 uint8_t Mnist32x32_4L::predictOptimizedRaw(float *input)
 {
-    _input = Dense(1024, 1, COLUMN_MAJOR, reinterpret_cast<byte*>(input));
-    predictOptimized(_input, _output);
+    _input.setFloatMatrix(input, 1024, 1, COLUMN_MAJOR);
+    predictOptimized(_input, _outputSample);
+    return _outputSample.argmax();
 }
 
 Mnist32x32_4L_4in16Sparse::Mnist32x32_4L_4in16Sparse(string weightsFileTemplate, string biasesFileTemplate)

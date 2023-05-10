@@ -177,7 +177,7 @@ class MainActivity : AppCompatActivity() {
         {
             val outFile = File(filesDir, filename)
             
-            if (!outFile.exists())
+            if (true) // (!outFile.exists())
             {
                 try {
                     assetManager.open(filename).use { inputStream ->
@@ -246,51 +246,10 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        /*var fileInputStream: FileInputStream? = null
-        fileInputStream = openFileInput("mnist_y_test.csv")
-        var inputStreamReader: InputStreamReader = InputStreamReader(fileInputStream)
-        val bufferedReader: BufferedReader = BufferedReader(inputStreamReader)
-        val stringBuilder: StringBuilder = StringBuilder()
-        var text: String? = null
-        while ({ text = bufferedReader.readLine(); text }() != null) {
-            stringBuilder.append(text)
-        }*/
-
-        /*saveConfigToInternalStorage()
-
-        val accuracy : Double
-        val elapsed = measureTimeMillis {
-            val X_test = loadCsvFile("mnist_X_test.csv")
-            val y_test = loadCsvFile("mnist_y_test.csv")
-
-            val modelDense = Mnist.newInstance(this)
-            var correctPredictions = 0
-            val totalSamples = X_test.size
-
-            for (i in X_test.indices) {
-                val inputFeature0 = TensorBuffer.createFixedSize(intArrayOf(1, 1024), DataType.FLOAT32)
-                inputFeature0.loadArray(X_test[i])
-
-                val outputs = modelDense.process(inputFeature0)
-                val outputFeature0 = outputs.outputFeature0AsTensorBuffer
-
-                val predictedIndex = outputFeature0.floatArray.withIndex().maxByOrNull { it.value }?.index
-                val trueIndex = y_test[i][0].toInt()
-
-                if (predictedIndex == trueIndex) {
-                    correctPredictions++
-                }
-            }
-            modelDense.close()
-            accuracy = correctPredictions.toDouble() / totalSamples * 100
-        }
-
-        binding.sampleText.text = "Elapsed time TFLite: $elapsed ms\n" + stringFromJNI()*/
-
-        saveConfigToInternalStorage()
+        //saveConfigToInternalStorage()
 
         val X_test = loadCsvFile("mnist_X_test.csv")
-        //val y_test = loadCsvFile("mnist_y_test.csv")
+        val y_test = loadCsvFile("mnist_y_test.csv")
         quantizedModel =  TFLiteModel(this, "quantized_mnist.tflite")
         defaultModel = DefaultMnist.newInstance(this)
         optimizedModel = OptimizedMnist.newInstance(this)
@@ -308,9 +267,9 @@ class MainActivity : AppCompatActivity() {
         with (binding.classifyTFDefaultBtn) {
            setOnClickListener {
                val pixelArray = getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
+               val formater = DecimalFormat("#.###")
 
                var predictedIndex: Int? = 0
-               var correctPredictions = 0
                val elapsed = measureNanoTime {
                    if (_mode == Modes.SAMPLES) {
                        for (i in 0 until _runs)
@@ -323,18 +282,21 @@ class MainActivity : AppCompatActivity() {
                        binding.resultText.text = predictedIndex.toString()
                    }
                    else if (_mode == Modes.SAMPLED_TEST_SET) {
+                       var correctPredictions : Int = 0
                        for (i in X_test.indices)
                        {
                            inputFeature.loadArray(X_test[i])
                            val modelOutput = defaultModel.process(inputFeature)
                            val outputFeature = modelOutput.outputFeature0AsTensorBuffer
                            predictedIndex = outputFeature.floatArray.withIndex().maxByOrNull { it.value }?.index
+                           if (predictedIndex == y_test[i][0].toInt()) {
+                               correctPredictions++
+                           }
                        }
-                       binding.resultText.text = ""
+                       binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
                    }
                }
 
-               val formater = DecimalFormat("#.###")
                binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
 
                if (_mode == Modes.SAMPLES) {
@@ -349,9 +311,9 @@ class MainActivity : AppCompatActivity() {
         with (binding.classifyTFOptimizedBtn) {
             setOnClickListener {
                 val pixelArray = getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
+                val formater = DecimalFormat("#.###")
 
                 var predictedIndex: Int? = 0
-                var correctPredictions = 0
                 val elapsed = measureNanoTime {
                     if (_mode == Modes.SAMPLES) {
                         for (i in 0 until _runs)
@@ -364,18 +326,21 @@ class MainActivity : AppCompatActivity() {
                         binding.resultText.text = predictedIndex.toString()
                     }
                     else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        var correctPredictions : Int = 0
                         for (i in X_test.indices)
                         {
                             inputFeature.loadArray(X_test[i])
                             val modelOutput = optimizedModel.process(inputFeature)
                             val outputFeature = modelOutput.outputFeature0AsTensorBuffer
                             predictedIndex = outputFeature.floatArray.withIndex().maxByOrNull { it.value }?.index
+                            if (predictedIndex == y_test[i][0].toInt()) {
+                                correctPredictions++
+                            }
                         }
-                        binding.resultText.text = ""
+                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
                     }
                 }
 
-                val formater = DecimalFormat("#.###")
                 binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
 
                 if (_mode == Modes.SAMPLES) {
@@ -390,6 +355,7 @@ class MainActivity : AppCompatActivity() {
         with (binding.classifyTFQuantizedBtn) {
             setOnClickListener {
                 val pixelArray = quantizedModel.getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
+                val formater = DecimalFormat("#.###")
 
                 var predictedIndex: Int? = 0
                 val elapsed = measureNanoTime {
@@ -401,15 +367,18 @@ class MainActivity : AppCompatActivity() {
                         binding.resultText.text = predictedIndex.toString()
                     }
                     else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        var correctPredictions : Int = 0
                         for (i in X_test.indices)
                         {
                             predictedIndex = quantizedModel.runInference(quantizedModel.getPixelArray(X_test[i]))
+                            if (predictedIndex == y_test[i][0].toInt()) {
+                                correctPredictions++
+                            }
                         }
-                        binding.resultText.text = ""
+                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
                     }
                 }
 
-                val formater = DecimalFormat("#.###")
                 binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
 
                 if (_mode == Modes.SAMPLES) {
@@ -424,10 +393,11 @@ class MainActivity : AppCompatActivity() {
         with (binding.classifyDense) {
             setOnClickListener {
                 val pixelArray = getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
+                val formater = DecimalFormat("#.###")
 
-                var predictedIndex : Int = 0
                 val elapsed = measureNanoTime {
                     if (_mode == Modes.SAMPLES) {
+                        var predictedIndex : Int = 0
                         for (i in 0 until _runs)
                         {
                             predictedIndex = runDenseModel(pixelArray)
@@ -435,18 +405,22 @@ class MainActivity : AppCompatActivity() {
                         binding.resultText.text = predictedIndex.toString()
                     }
                     else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        var correctPredictions : Int = 0
                         for (i in X_test.indices)
                         {
-                            runDenseModel(X_test[i])
+                            val predictedIndex = runDenseModel(X_test[i])
+                            if (predictedIndex == y_test[i][0].toInt()) {
+                                correctPredictions++
+                            }
                         }
-                        binding.resultText.text = ""
+                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
                     }
                     else if (_mode == Modes.TEST_SET) {
-                        runDenseModelTestSet()
-                        binding.resultText.text = ""
+                        val accuracy = runDenseModelTestSet() * 100
+                        binding.resultText.text = "${formater.format(accuracy)} %"
                     }
                 }
-                val formater = DecimalFormat("#.###")
+
                 binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
 
                 if (_mode == Modes.SAMPLES) {
@@ -479,6 +453,7 @@ class MainActivity : AppCompatActivity() {
         with (binding.classifyDenseNNAPI) {
             setOnClickListener {
                 val pixelArray = getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
+                val formater = DecimalFormat("#.###")
 
                 var predictedIndex : Int = 0
                 val elapsed = measureNanoTime {
@@ -489,15 +464,23 @@ class MainActivity : AppCompatActivity() {
                         }
                         binding.resultText.text = predictedIndex.toString()
                     }
+                    else if (_mode == Modes.TEST_SET) {
+                        val accuracy = runDenseModelNNAPITestSet() * 100
+                        binding.resultText.text = "${formater.format(accuracy)} %"
+                    }
                     else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        var correctPredictions : Int = 0
                         for (i in X_test.indices)
                         {
-                            runDenseModelNNAPI(X_test[i])
+                            val predictedIndex = runDenseModelNNAPI(X_test[i])
+                            if (predictedIndex == y_test[i][0].toInt()) {
+                                correctPredictions++
+                            }
                         }
-                        binding.resultText.text = ""
+                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
                     }
                 }
-                val formater = DecimalFormat("#.###")
+
                 binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
 
                 if (_mode == Modes.SAMPLES) {
@@ -609,7 +592,8 @@ class MainActivity : AppCompatActivity() {
     external fun run2in16model(sample: FloatArray): Int
     external fun runDenseModelNNAPI(sample: FloatArray): Int
     external fun testMLAPI(): String
-    external fun  runDenseModelTestSet(): Unit
+    external fun  runDenseModelTestSet(): Float
+    external fun runDenseModelNNAPITestSet(): Float
 
     companion object {
         // Used to load the 'sparseandroidml' library on application startup.

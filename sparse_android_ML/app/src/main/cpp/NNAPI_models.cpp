@@ -4,7 +4,7 @@ using namespace std;
 using namespace Matrix;
 using namespace Models;
 
-NNAPI_Mnist32x32_4L::NNAPI_Mnist32x32_4L() : _output{10, 1, COLUMN_MAJOR}
+NNAPI_Mnist32x32_4L::NNAPI_Mnist32x32_4L() : _outputSample{10, 1, COLUMN_MAJOR}, _outputMatrix{10, 10'000, COLUMN_MAJOR}
 {
 
 }
@@ -49,6 +49,7 @@ void NNAPI_Mnist32x32_4L::loadToSharedMemory(std::string name, ANeuralNetworksMe
 void NNAPI_Mnist32x32_4L::load(string path)
 {
     _W0 = Dense(path + "/weights_l0.csv", ROW_MAJOR);
+    __android_log_print(ANDROID_LOG_ERROR, "NNAPI_Mnist32x32_4L", "%d %d", _W0.getRows(), _W0.getColumns());
     _W1 = Dense(path + "/weights_l1.csv", ROW_MAJOR);
     _W2 = Dense(path + "/weights_l2.csv", ROW_MAJOR);
     _W3 = Dense(path + "/weights_l3.csv", ROW_MAJOR);
@@ -127,25 +128,23 @@ void NNAPI_Mnist32x32_4L::load(string path)
             .zeroPoint = 0,
     };
 
-    uint32_t inputDimensions[2] = { 1U, 1024U };
     ANeuralNetworksOperandType inputOperand{
             .type = ANEURALNETWORKS_TENSOR_FLOAT32,
-            .dimensionCount = 2,
-            .dimensions = inputDimensions,
+            .dimensionCount = 0,
+            .dimensions = nullptr,
             .scale = 0.0f,
             .zeroPoint = 0,
     };
 
-    uint32_t outputDimensions[2] = { 1U, 10U };
     ANeuralNetworksOperandType outputOperand{
             .type = ANEURALNETWORKS_TENSOR_FLOAT32,
-            .dimensionCount = 2,
-            .dimensions = outputDimensions,
+            .dimensionCount = 0,
+            .dimensions = nullptr,
             .scale = 0.0f,
             .zeroPoint = 0,
     };
 
-    uint32_t intermediateOutputDimensions[2] = { 1U,1024U };
+    uint32_t intermediateOutputDimensions[2] = { 0U,1024U };
     ANeuralNetworksOperandType intermediateOutputOperand{
             .type = ANEURALNETWORKS_TENSOR_FLOAT32,
             .dimensionCount = 2,
@@ -288,13 +287,6 @@ void NNAPI_Mnist32x32_4L::load(string path)
     // 19 - activation function NONE
     // 20 - output
 
-    //status = ANeuralNetworksModel_setOperandValue(_model, 1, _W0.getData(), _W0.getSize());
-
-    /*float *w01Ptr = reinterpret_cast<float *>(mmap(nullptr, hiddenWeightsSize, PROT_READ, MAP_SHARED, _W0fd, 0));
-    __android_log_print(ANDROID_LOG_ERROR, "NNAPI_Mnist32x32_4L", "W0SharedMemory[0]: %f", w01Ptr[0]);
-    __android_log_print(ANDROID_LOG_ERROR, "NNAPI_Mnist32x32_4L", "W0SharedMemory[1]: %f", w01Ptr[1]);
-    __android_log_print(ANDROID_LOG_ERROR, "NNAPI_Mnist32x32_4L", "W0SharedMemory[2]: %f", w01Ptr[2]);
-    munmap(w01Ptr, hiddenWeightsSize);*/
     status = ANeuralNetworksModel_setOperandValueFromMemory(_model, 1, _W0SharedMemory, 0, hiddenWeightsSize);
     if (status != ANEURALNETWORKS_NO_ERROR)
     {
@@ -480,21 +472,51 @@ void NNAPI_Mnist32x32_4L::load(string path)
     }
 }
 
-uint8_t NNAPI_Mnist32x32_4L::predict(float *input)
+void NNAPI_Mnist32x32_4L::predict(float *input, uint32_t numberOfSamples)
 {
+    uint32_t inputDimensions[2] = { numberOfSamples, 1024U };
+    ANeuralNetworksOperandType inputOperand{
+            .type = ANEURALNETWORKS_TENSOR_FLOAT32,
+            .dimensionCount = 2,
+            .dimensions = inputDimensions,
+            .scale = 0.0f,
+            .zeroPoint = 0,
+    };
+
+    uint32_t outputDimensions[2] = { numberOfSamples, 10U };
+    ANeuralNetworksOperandType outputOperand{
+            .type = ANEURALNETWORKS_TENSOR_FLOAT32,
+            .dimensionCount = 2,
+            .dimensions = outputDimensions,
+            .scale = 0.0f,
+            .zeroPoint = 0,
+    };
 
     int status = ANeuralNetworksExecution_create(_compilation, &_execution);
     if (status != ANEURALNETWORKS_NO_ERROR)
     {
         __android_log_print(ANDROID_LOG_ERROR, "NNAPI_Mnist32x32_4L", "Execution creation failed");
     }
-    status = ANeuralNetworksExecution_setInput(_execution, 0, nullptr, input, INPUT_SIZE);
+    status = ANeuralNetworksExecution_setInput(_execution, 0, &inputOperand, input, INPUT_SIZE * numberOfSamples);
     
     if (status != ANEURALNETWORKS_NO_ERROR)
     {
         __android_log_print(ANDROID_LOG_ERROR, "NNAPI_Mnist32x32_4L", "%d: Failed to set input 0", status);
     }
-    status = ANeuralNetworksExecution_setOutput(_execution, 0, nullptr, _output.getData(), _output.getSize());
+    
+    if (numberOfSamples == 1)
+    {
+        status = ANeuralNetworksExecution_setOutput(_execution, 0, &outputOperand, _outputSample.getData(), _outputSample.getSize());
+    }
+    else if (numberOfSamples == 10'000)
+    {
+        status = ANeuralNetworksExecution_setOutput(_execution, 0, &outputOperand, _outputMatrix.getData(), _outputMatrix.getSize());
+    }
+    else
+    {
+        __android_log_print(ANDROID_LOG_ERROR, "NNAPI_Mnist32x32_4L", "Invalid number of samples");
+    }
+
     if (status != ANEURALNETWORKS_NO_ERROR)
     {
         __android_log_print(ANDROID_LOG_ERROR, "NNAPI_Mnist32x32_4L", "Failed to set output");
@@ -507,5 +529,16 @@ uint8_t NNAPI_Mnist32x32_4L::predict(float *input)
     }
 
     ANeuralNetworksExecution_free(_execution);
-    return _output.argmax();
+}
+
+uint8_t NNAPI_Mnist32x32_4L::predictSample(float *input)
+{
+    predict(input, 1);
+    return _outputSample.argmax();
+}
+
+Dense NNAPI_Mnist32x32_4L::predictTestSet(float *input, uint32_t numberOfSamples)
+{
+    predict(input, numberOfSamples);
+    return _outputMatrix.argmax(0);
 }

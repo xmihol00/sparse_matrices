@@ -18,7 +18,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
-                cppFlags '-std=c++20 -mfpu=neon -mfloat-abi=hard -Ofast -DPHONE=0'
+                cppFlags '-std=c++20 -mfpu=neon -mfloat-abi=hard -Ofast -DPHONE=1'
                 arguments "-DANDROID_ARM_NEON=ON"
             }
         }

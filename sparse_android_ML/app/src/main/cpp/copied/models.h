@@ -31,7 +31,8 @@ namespace Models
             Matrix::Dense _B4;
             
             Matrix::Dense _input;
-            Matrix::Dense _output;
+            Matrix::Dense _outputSample;
+            Matrix::Dense _outputMatrix;
 
         public:
             Mnist32x32_4L() = default;

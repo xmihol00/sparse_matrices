@@ -60,9 +60,11 @@ namespace Models
             int32_t _activationNONE = ANEURALNETWORKS_FUSED_NONE;
 
             const uint16_t INPUT_SIZE = 1024 * sizeof(float);
-            Matrix::Dense _output;
+            Matrix::Dense _outputSample;
+            Matrix::Dense _outputMatrix;
 
             void loadToSharedMemory(std::string name, ANeuralNetworksMemory *&memory, Matrix::Dense &matrix);
+            void predict(float *input, uint32_t numberOfSamples);
         
         public:
             NNAPI_Mnist32x32_4L(std::string path);
@@ -70,7 +72,9 @@ namespace Models
             ~NNAPI_Mnist32x32_4L();
 
             void load(std::string path);
-            uint8_t predict(float *input);
+
+            uint8_t predictSample(float *input);
+            Matrix::Dense predictTestSet(float *input, uint32_t numberOfSamples);
     };
 }
 

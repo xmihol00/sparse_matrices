@@ -764,5 +764,5 @@ float Dense::percentageDifference(Dense &operandMatrix, float threshold)
         return static_cast<float>(sameElements) / static_cast<float>(numberOfElements);
     }
 
-    return 1.0f;
+    return -1.0f;
 }
