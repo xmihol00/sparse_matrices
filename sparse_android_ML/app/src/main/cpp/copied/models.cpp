@@ -91,7 +91,7 @@ Dense Mnist32x32_4L::predictOptimized(Matrix::Dense &input)
     return _outputMatrix.argmax(0);
 }
 
-uint8_t Mnist32x32_4L::predictOptimizedRaw(float *input)
+uint8_t Mnist32x32_4L::predictOptimizedRawSample(float *input)
 {
     _input.setFloatMatrix(input, 1024, 1, COLUMN_MAJOR);
     predictOptimized(_input, _outputSample);

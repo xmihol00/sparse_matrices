@@ -519,37 +519,84 @@ class MainActivity : AppCompatActivity() {
         with (binding.classify4in16Btn) {
             setOnClickListener {
                 val pixelArray = getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
+                val formater = DecimalFormat("#.###")
 
-                var predictedIndex : Int = 0
                 val elapsed = measureNanoTime {
-                    for (i in 0 until _runs)
-                    {
-                        //predictedIndex = run4in16model(pixelArray)
-                        predictedIndex = runDenseModelNNAPI(pixelArray)
+                    if (_mode == Modes.SAMPLES) {
+                        var predictedIndex : Int = 0
+                        for (i in 0 until _runs)
+                        {
+                            predictedIndex = run4in16model(pixelArray)
+                        }
+                        binding.resultText.text = predictedIndex.toString()
+                    }
+                    else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        var correctPredictions : Int = 0
+                        for (i in X_test.indices)
+                        {
+                            val predictedIndex = run4in16model(X_test[i])
+                            if (predictedIndex == y_test[i][0].toInt()) {
+                                correctPredictions++
+                            }
+                        }
+                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
+                    }
+                    else if (_mode == Modes.TEST_SET) {
+                        val accuracy = run4in16modelTestSet() * 100
+                        binding.resultText.text = "${formater.format(accuracy)} %"
                     }
                 }
-                val formater = DecimalFormat("#.###")
-                binding.resultText.text = predictedIndex.toString()
+
                 binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
-                binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
+
+                if (_mode == Modes.SAMPLES) {
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f)} ms"
+                }
+                else {
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / 10_000)} ms"
+                }
             }
         }
 
         with (binding.classify2in16Btn) {
             setOnClickListener {
                 val pixelArray = getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
+                val formater = DecimalFormat("#.###")
 
-                var predictedIndex : Int = 0
                 val elapsed = measureNanoTime {
-                    for (i in 0 until _runs)
-                    {
-                        predictedIndex = run2in16model(pixelArray)
+                    if (_mode == Modes.SAMPLES) {
+                        var predictedIndex : Int = 0
+                        for (i in 0 until _runs)
+                        {
+                            predictedIndex = run2in16model(pixelArray)
+                        }
+                        binding.resultText.text = predictedIndex.toString()
+                    }
+                    else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        var correctPredictions : Int = 0
+                        for (i in X_test.indices)
+                        {
+                            val predictedIndex = run2in16model(X_test[i])
+                            if (predictedIndex == y_test[i][0].toInt()) {
+                                correctPredictions++
+                            }
+                        }
+                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
+                    }
+                    else if (_mode == Modes.TEST_SET) {
+                        val accuracy = run2in16modelTestSet() * 100
+                        binding.resultText.text = "${formater.format(accuracy)} %"
                     }
                 }
-                val formater = DecimalFormat("#.###")
-                binding.resultText.text = predictedIndex.toString()
+
                 binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
-                binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
+
+                if (_mode == Modes.SAMPLES) {
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f)} ms"
+                }
+                else {
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / 10_000)} ms"
+                }
             }
         }
 
@@ -614,10 +661,12 @@ class MainActivity : AppCompatActivity() {
     external fun runDenseThreadsTestSet() : Float
     external fun runDenseModel(sample: FloatArray): Int
     external fun run4in16model(sample: FloatArray): Int
+    external fun run4in16modelTestSet(): Float
     external fun run2in16model(sample: FloatArray): Int
+    external fun run2in16modelTestSet(): Float
     external fun runDenseModelNNAPI(sample: FloatArray): Int
     external fun testMLAPI(): String
-    external fun  runDenseModelTestSet(): Float
+    external fun runDenseModelTestSet(): Float
     external fun runDenseModelNNAPITestSet(): Float
 
     companion object {

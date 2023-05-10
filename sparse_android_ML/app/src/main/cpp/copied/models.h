@@ -44,7 +44,7 @@ namespace Models
             void predictOptimized(Matrix::Dense &input, Matrix::Dense &output);
             Matrix::Dense predictOptimized(Matrix::Dense &input);
 
-            uint8_t predictOptimizedRaw(float *input);
+            uint8_t predictOptimizedRawSample(float *input);
     };
 
     template <uint8_t numberOfThreads>
@@ -167,7 +167,7 @@ namespace Models
                 _tmp2Matrix = Dense(_B0.getRows(), 10'000, COLUMN_MAJOR, numberOfThreads);
             }
 
-            uint32_t predictRowRaw(float *input)
+            uint32_t predictRawSample(float *input)
             {
                 using namespace Matrix;
 
@@ -193,15 +193,14 @@ namespace Models
                 return _outputSample.argmax();
             }
 
-            Matrix::Dense predictColumnRaw(float *input, uint16_t numberOfColumns)
+            Matrix::Dense predictMatrix(Matrix::Dense input)
             {
                 using namespace Matrix;
 
                 _predictRow = false;
-                _input.setFloatMatrix(input, _W0.getColumns(), numberOfColumns, COLUMN_MAJOR);
                 _semaphore.release(numberOfThreads - 1);
 
-                _W0.dotAddActivateColumnThread(_input, _B0, _tmp1Matrix, ReLU, numberOfThreads, 0);
+                _W0.dotAddActivateColumnThread(input, _B0, _tmp1Matrix, ReLU, numberOfThreads, 0);
                 _W1.dotAddActivateColumnThread(_tmp1Matrix, _B1, _tmp2Matrix, ReLU, numberOfThreads, 0);
                 _W2.dotAddActivateColumnThread(_tmp2Matrix, _B2, _tmp1Matrix, ReLU, numberOfThreads, 0);
                 _W3.dotAddActivateColumnThread(_tmp1Matrix, _B3, _tmp2Matrix, ReLU, numberOfThreads, 0);
@@ -251,6 +250,14 @@ namespace Models
             Matrix::Dense _B3;
             Matrix::Dense _B4;
 
+            Matrix::Dense _input;
+            Matrix::Dense _outputSample;
+            Matrix::Dense _tmp1Sample;
+            Matrix::Dense _tmp2Sample;
+            Matrix::Dense _outputMatrix;
+            Matrix::Dense _tmp1Matrix;
+            Matrix::Dense _tmp2Matrix;
+
             template <float (*activationFunction)(float)>
             void predictActivationThread(Matrix::Dense &input, Matrix::Dense &tmp, uint8_t numberOfThreads, uint8_t threadId, 
                                          std::barrier<> &syncBarrier)
@@ -280,24 +287,42 @@ namespace Models
                 _B1{biasesFileTemplate + "l1.csv", Matrix::COLUMN_MAJOR},
                 _B2{biasesFileTemplate + "l2.csv", Matrix::COLUMN_MAJOR},
                 _B3{biasesFileTemplate + "l3.csv", Matrix::COLUMN_MAJOR},
-                _B4{biasesFileTemplate + "l4.csv", Matrix::COLUMN_MAJOR} 
+                _B4{biasesFileTemplate + "l4.csv", Matrix::COLUMN_MAJOR},
+                _outputSample{10, 1, Matrix::COLUMN_MAJOR},
+                _outputMatrix{10, 1024, Matrix::COLUMN_MAJOR},
+                _tmp1Sample{1024, 1, Matrix::COLUMN_MAJOR},
+                _tmp2Sample{1024, 1, Matrix::COLUMN_MAJOR},
+                _tmp1Matrix{1024, 1024, Matrix::COLUMN_MAJOR},
+                _tmp2Matrix{1024, 1024, Matrix::COLUMN_MAJOR}
             { }
 
-            ~Mnist32x32_4L_KinMSparse() = default;
+            ~Mnist32x32_4L_KinMSparse()
+            {
+                _input.clear();
+            }
 
             void load(std::string weightsFileTemplate, std::string biasesFileTemplate)
             {
-                _W0 = Matrix::BlockKinNSparse<K, N, 1024, 1024, Matrix::ROW_MAJOR>{weightsFileTemplate + "l0.csv"};
-                _W1 = Matrix::BlockKinNSparse<K, N, 1024, 1024, Matrix::ROW_MAJOR>{weightsFileTemplate + "l1.csv"};
-                _W2 = Matrix::BlockKinNSparse<K, N, 1024, 1024, Matrix::ROW_MAJOR>{weightsFileTemplate + "l2.csv"};
-                _W3 = Matrix::BlockKinNSparse<K, N, 1024, 1024, Matrix::ROW_MAJOR>{weightsFileTemplate + "l3.csv"};
-                _W4 = Matrix::Dense{weightsFileTemplate + "l4.csv", Matrix::ROW_MAJOR};
+                using namespace Matrix;
 
-                _B0 = Matrix::Dense{biasesFileTemplate + "l0.csv", Matrix::COLUMN_MAJOR};
-                _B1 = Matrix::Dense{biasesFileTemplate + "l1.csv", Matrix::COLUMN_MAJOR};
-                _B2 = Matrix::Dense{biasesFileTemplate + "l2.csv", Matrix::COLUMN_MAJOR};
-                _B3 = Matrix::Dense{biasesFileTemplate + "l3.csv", Matrix::COLUMN_MAJOR};
-                _B4 = Matrix::Dense{biasesFileTemplate + "l4.csv", Matrix::COLUMN_MAJOR};
+                _W0 = BlockKinNSparse<K, N, 1024, 1024, ROW_MAJOR>{weightsFileTemplate + "l0.csv"};
+                _W1 = BlockKinNSparse<K, N, 1024, 1024, ROW_MAJOR>{weightsFileTemplate + "l1.csv"};
+                _W2 = BlockKinNSparse<K, N, 1024, 1024, ROW_MAJOR>{weightsFileTemplate + "l2.csv"};
+                _W3 = BlockKinNSparse<K, N, 1024, 1024, ROW_MAJOR>{weightsFileTemplate + "l3.csv"};
+                _W4 = Dense{weightsFileTemplate + "l4.csv", ROW_MAJOR};
+
+                _B0 = Dense{biasesFileTemplate + "l0.csv", COLUMN_MAJOR};
+                _B1 = Dense{biasesFileTemplate + "l1.csv", COLUMN_MAJOR};
+                _B2 = Dense{biasesFileTemplate + "l2.csv", COLUMN_MAJOR};
+                _B3 = Dense{biasesFileTemplate + "l3.csv", COLUMN_MAJOR};
+                _B4 = Dense{biasesFileTemplate + "l4.csv", COLUMN_MAJOR};
+
+                _outputSample = Dense{10, 1, COLUMN_MAJOR};
+                _outputMatrix = Dense{10, 10'000, COLUMN_MAJOR};
+                _tmp1Sample = Dense{1024, 1, COLUMN_MAJOR};
+                _tmp2Sample = Dense{1024, 1, COLUMN_MAJOR};
+                _tmp1Matrix = Dense{1024, 10'000, COLUMN_MAJOR};
+                _tmp2Matrix = Dense{1024, 10'000, COLUMN_MAJOR};
             }
 
             void predict(Matrix::Dense &input, Matrix::Dense &output)
@@ -366,28 +391,35 @@ namespace Models
                 return output;
             }
  
-            void predictOptimized(Matrix::Dense &input, Matrix::Dense &output)
+            uint8_t predictOptimizedRawSample(float *input)
             {
                 using namespace Matrix;
-                
-                Dense tmp(_W0.getRows(), input.getColumns(), COLUMN_MAJOR);
 
-                _W0.template dotAddActivate<ReLU>(input, _B0, tmp);                              
-                _W1.template dotAddActivate<ReLU>(tmp, _B1, input);
-                _W2.template dotAddActivate<ReLU>(input, _B2, tmp);
-                _W3.template dotAddActivate<ReLU>(tmp, _B3, input);
+                _input.setFloatMatrix(input, 1024, 1, COLUMN_MAJOR);
+                _W0.template dotAddActivate<ReLU>(_input, _B0, _tmp1Sample);
+                _W1.template dotAddActivate<ReLU>(_tmp1Sample, _B1, _tmp2Sample);
+                _W2.template dotAddActivate<ReLU>(_tmp2Sample, _B2,_tmp1Sample);
+                _W3.template dotAddActivate<ReLU>(_tmp1Sample, _B3, _tmp2Sample);
 
-                _W4.dot(input, output);
-                output.add(_B4);
+                _W4.dot(_tmp2Sample, _outputSample);
+                _outputSample.add(_B4);
+
+                return _outputSample.argmax();
             }
 
-            Matrix::Dense predictOptimized(Matrix::Dense &input)
+            Matrix::Dense predictOptimizedMatrix(Matrix::Dense input)
             {
                 using namespace Matrix;
 
-                Dense output(_B4.getRows(), input.getColumns(), COLUMN_MAJOR);
-                predictOptimized(input, output);
-                return output;
+                _W0.template dotAddActivate<ReLU>(input, _B0, _tmp1Matrix);
+                _W1.template dotAddActivate<ReLU>(_tmp1Matrix, _B1, _tmp2Matrix);
+                _W2.template dotAddActivate<ReLU>(_tmp2Matrix, _B2,_tmp1Matrix);
+                _W3.template dotAddActivate<ReLU>(_tmp1Matrix, _B3, _tmp2Matrix);
+
+                _W4.dot(_tmp2Matrix, _outputMatrix);
+                _outputMatrix.add(_B4);
+
+                return _outputMatrix.argmax(0);
             }
 
             template <uint8_t numberOfThreads>

@@ -66,7 +66,7 @@ int main()
     Mnist32x32_4L_Threads<8> modelThreads;
     modelThreads.load("weights/weights_", "weights/biases_");
     start = chrono::high_resolution_clock::now();
-    output = modelThreads.predictColumnRaw(input.getData(), 10'000);
+    output = modelThreads.predictMatrix(input.getData(), 10'000);
     end = chrono::high_resolution_clock::now();
     cerr << "Time of prediction (dense): " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
     //Dense results = output.argmax(0);
@@ -88,7 +88,7 @@ int main()
     start = chrono::high_resolution_clock::now();
     for (int i = 0; i < 10000; i++)
     {
-        modelThreads.predictRowRaw(rawPtr);
+        modelThreads.predictRawSample(rawPtr);
     }
     end = chrono::high_resolution_clock::now();
     cerr << "Time of prediction (dense threads): " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
