@@ -435,18 +435,42 @@ class MainActivity : AppCompatActivity() {
         with (binding.classifyDenseThreads) {
             setOnClickListener {
                 val pixelArray = getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
+                val formater = DecimalFormat("#.###")
 
-                var predictedIndex : Int = 0
                 val elapsed = measureNanoTime {
-                    for (i in X_test.indices)
-                    {
-                        predictedIndex = runDenseModel(X_test[i])
+                    if (_mode == Modes.SAMPLES) {
+                        var predictedIndex : Int = 0
+                        for (i in 0 until _runs)
+                        {
+                            predictedIndex = runDenseThreadsSample(pixelArray)
+                        }
+                        binding.resultText.text = predictedIndex.toString()
+                    }
+                    else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        var correctPredictions : Int = 0
+                        for (i in X_test.indices)
+                        {
+                            val predictedIndex = runDenseThreadsSample(X_test[i])
+                            if (predictedIndex == y_test[i][0].toInt()) {
+                                correctPredictions++
+                            }
+                        }
+                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
+                    }
+                    else if (_mode == Modes.TEST_SET) {
+                        val accuracy = runDenseThreadsTestSet() * 100
+                        binding.resultText.text = "${formater.format(accuracy)} %"
                     }
                 }
-                val formater = DecimalFormat("#.###")
-                binding.resultText.text = predictedIndex.toString()
+
                 binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
-                binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
+
+                if (_mode == Modes.SAMPLES) {
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f)} ms"
+                }
+                else {
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / 10_000)} ms"
+                }
             }
         }
 
@@ -587,6 +611,7 @@ class MainActivity : AppCompatActivity() {
 
     external fun loadModels(): Unit
     external fun runDenseThreadsSample(sample: FloatArray): Int
+    external fun runDenseThreadsTestSet() : Float
     external fun runDenseModel(sample: FloatArray): Int
     external fun run4in16model(sample: FloatArray): Int
     external fun run2in16model(sample: FloatArray): Int

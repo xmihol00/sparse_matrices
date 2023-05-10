@@ -53,19 +53,15 @@ Java_com_example_sparseandroidml_MainActivity_loadModels(
 extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_runDenseThreadsSample(JNIEnv* env, jobject context, jfloatArray sample)
 {
     float *floatArrayElements = env->GetFloatArrayElements(sample, nullptr);
-
-    //Dense input(1024, 1, Matrix::COLUMN_MAJOR, reinterpret_cast<byte *>(floatArrayElements));
-    //Dense output = modelDense.predict(input);
-    //Dense result = output.argmax(0);
-    uint32_t result = modelDenseThreads.predictRaw(floatArrayElements);
-
+    uint32_t result = modelDenseThreads.predictRowRaw(floatArrayElements);
     env->ReleaseFloatArrayElements(sample, floatArrayElements, 0);
-    //return static_cast<jint>(result(0, 0));
+    
     return static_cast<jint>(result);
 }
-extern "C" JNIEXPORT jint JNICALL  Java_com_example_sparseandroidml_MainActivity_runDenseThreadsTestSet(JNIEnv* env, jobject context)
+extern "C" JNIEXPORT jfloat JNICALL  Java_com_example_sparseandroidml_MainActivity_runDenseThreadsTestSet(JNIEnv* env, jobject context)
 {
-
+    Dense output = modelDenseThreads.predictColumnRaw(X_test.getData(), 10'000);
+    return output.percentageDifference(y_test);
 }
 
 extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_runDenseModel(JNIEnv* env, jobject context, jfloatArray sample)

@@ -22,5 +22,7 @@ array = array.astype(dtype=np.float32)
 array1 = np.loadtxt(f"weights/weights_l0.csv", delimiter=',')
 array2 = np.random.rand(ROWS, COLUMNS)
 np.savetxt(f"generated_matrices/random.csv", array2, delimiter=',', fmt="%.7f")
+np.savetxt(f"generated_matrices/random_column.csv", array2[:, 0], delimiter=',', fmt="%.7f")
 np.savetxt(f"generated_matrices/reference.csv", np.matmul(array1, array2), delimiter=',', fmt="% .7f")
+np.savetxt(f"generated_matrices/reference_column.csv", np.matmul(array1, array2[:, 0]), delimiter=',', fmt="% .7f")
 

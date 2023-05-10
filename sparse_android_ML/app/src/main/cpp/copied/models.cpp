@@ -100,15 +100,15 @@ uint8_t Mnist32x32_4L::predictOptimizedRaw(float *input)
 
 Mnist32x32_4L_4in16Sparse::Mnist32x32_4L_4in16Sparse(string weightsFileTemplate, string biasesFileTemplate)
 : _W0{weightsFileTemplate + "l0.csv", ROW_MAJOR},
-      _W1{weightsFileTemplate + "l1.csv", ROW_MAJOR},
-      _W2{weightsFileTemplate + "l2.csv", ROW_MAJOR},
-      _W3{weightsFileTemplate + "l3.csv", ROW_MAJOR},
-      _W4{weightsFileTemplate + "l4.csv", ROW_MAJOR},
-      _B0{biasesFileTemplate + "l0.csv", COLUMN_MAJOR},
-      _B1{biasesFileTemplate + "l1.csv", COLUMN_MAJOR},
-      _B2{biasesFileTemplate + "l2.csv", COLUMN_MAJOR},
-      _B3{biasesFileTemplate + "l3.csv", COLUMN_MAJOR},
-      _B4{biasesFileTemplate + "l4.csv", COLUMN_MAJOR}
+  _W1{weightsFileTemplate + "l1.csv", ROW_MAJOR},
+  _W2{weightsFileTemplate + "l2.csv", ROW_MAJOR},
+  _W3{weightsFileTemplate + "l3.csv", ROW_MAJOR},
+  _W4{weightsFileTemplate + "l4.csv", ROW_MAJOR},
+  _B0{biasesFileTemplate + "l0.csv", COLUMN_MAJOR},
+  _B1{biasesFileTemplate + "l1.csv", COLUMN_MAJOR},
+  _B2{biasesFileTemplate + "l2.csv", COLUMN_MAJOR},
+  _B3{biasesFileTemplate + "l3.csv", COLUMN_MAJOR},
+  _B4{biasesFileTemplate + "l4.csv", COLUMN_MAJOR}
 { }
 
 void Mnist32x32_4L_4in16Sparse::predict(Matrix::Dense &input, Matrix::Dense &output)

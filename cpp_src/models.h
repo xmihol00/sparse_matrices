@@ -64,14 +64,18 @@ namespace Models
             Matrix::Dense _B4;
 
             Matrix::Dense _input;
-            Matrix::Dense _output;
-            Matrix::Dense _tmp1;
-            Matrix::Dense _tmp2;
+            Matrix::Dense _outputSample;
+            Matrix::Dense _tmp1Sample;
+            Matrix::Dense _tmp2Sample;
+            Matrix::Dense _outputMatrix;
+            Matrix::Dense _tmp1Matrix;
+            Matrix::Dense _tmp2Matrix;
 
             std::counting_semaphore<numberOfThreads - 1> _semaphore;
             std::barrier<> _barrier;
             std::thread _threads[numberOfThreads - 1];
             bool _run;
+            bool _predictRow;
 
             static float identity(float x)
             {
@@ -85,27 +89,39 @@ namespace Models
                 _semaphore.acquire();        
                 while (_run)
                 {
-                    _W0.dotAddActivateThread(_input, _B0, _tmp1, ReLU, numberOfThreads, threadId);
-                    _barrier.arrive_and_wait();
+                    if (_predictRow)
+                    {
+                        _W0.dotAddActivateRowThread(_input, _B0, _tmp1Sample, ReLU, numberOfThreads, threadId);
+                        _barrier.arrive_and_wait();
 
-                    _W1.dotAddActivateThread(_tmp1, _B1, _tmp2, ReLU, numberOfThreads, threadId);
-                    _barrier.arrive_and_wait();
+                        _W1.dotAddActivateRowThread(_tmp1Sample, _B1, _tmp2Sample, ReLU, numberOfThreads, threadId);
+                        _barrier.arrive_and_wait();
 
-                    _W2.dotAddActivateThread(_tmp2, _B2, _tmp1, ReLU, numberOfThreads, threadId);
-                    _barrier.arrive_and_wait();
+                        _W2.dotAddActivateRowThread(_tmp2Sample, _B2, _tmp1Sample, ReLU, numberOfThreads, threadId);
+                        _barrier.arrive_and_wait();
 
-                    _W3.dotAddActivateThread(_tmp1, _B3, _tmp2, ReLU, numberOfThreads, threadId);
-                    _barrier.arrive_and_wait();
+                        _W3.dotAddActivateRowThread(_tmp1Sample, _B3, _tmp2Sample, ReLU, numberOfThreads, threadId);
+                        _barrier.arrive_and_wait();
 
-                    _W4.dotAddActivateThread(_tmp2, _B4, _output, identity, numberOfThreads, threadId);
-                    _barrier.arrive_and_wait();
+                        _W4.dotAddActivateRowThread(_tmp2Sample, _B4, _outputSample, identity, numberOfThreads, threadId);
+                        _barrier.arrive_and_wait();
+                    }
+                    else
+                    {
+                        _W0.dotAddActivateColumnThread(_input, _B0, _tmp1Matrix, ReLU, numberOfThreads, threadId);
+                        _W1.dotAddActivateColumnThread(_tmp1Matrix, _B1, _tmp2Matrix, ReLU, numberOfThreads, threadId);
+                        _W2.dotAddActivateColumnThread(_tmp2Matrix, _B2, _tmp1Matrix, ReLU, numberOfThreads, threadId);
+                        _W3.dotAddActivateColumnThread(_tmp1Matrix, _B3, _tmp2Matrix, ReLU, numberOfThreads, threadId);
+                        _W4.dotAddActivateColumnThread(_tmp2Matrix, _B4, _outputMatrix, identity, numberOfThreads, threadId);
+                        _barrier.arrive_and_wait();
+                    }
 
                     _semaphore.acquire();
                 }
             }
 
         public:
-            Mnist32x32_4L_Threads() : _semaphore(0), _barrier(numberOfThreads), _run(true)
+            Mnist32x32_4L_Threads() : _semaphore(0), _barrier(numberOfThreads), _run(true), _predictRow(true)
             {
                 using namespace std;
 
@@ -130,46 +146,69 @@ namespace Models
             {
                 using namespace Matrix;
 
-                _W0 = Dense{weightsFileTemplate + "l0.csv", ROW_MAJOR, 0 , numberOfThreads};
-                _W1 = Dense{weightsFileTemplate + "l1.csv", ROW_MAJOR, 0 , numberOfThreads};
-                _W2 = Dense{weightsFileTemplate + "l2.csv", ROW_MAJOR, 0 , numberOfThreads};
-                _W3 = Dense{weightsFileTemplate + "l3.csv", ROW_MAJOR, 0 , numberOfThreads};
-                _W4 = Dense{weightsFileTemplate + "l4.csv", ROW_MAJOR, 0 , numberOfThreads};
+                _W0 = Dense{weightsFileTemplate + "l0.csv", ROW_MAJOR, 0, numberOfThreads};
+                _W1 = Dense{weightsFileTemplate + "l1.csv", ROW_MAJOR, 0, numberOfThreads};
+                _W2 = Dense{weightsFileTemplate + "l2.csv", ROW_MAJOR, 0, numberOfThreads};
+                _W3 = Dense{weightsFileTemplate + "l3.csv", ROW_MAJOR, 0, numberOfThreads};
+                _W4 = Dense{weightsFileTemplate + "l4.csv", ROW_MAJOR, 0, numberOfThreads};
 
-                _B0 = Dense{biasesFileTemplate + "l0.csv", COLUMN_MAJOR, 0 , numberOfThreads};
-                _B1 = Dense{biasesFileTemplate + "l1.csv", COLUMN_MAJOR, 0 , numberOfThreads};
-                _B2 = Dense{biasesFileTemplate + "l2.csv", COLUMN_MAJOR, 0 , numberOfThreads};
-                _B3 = Dense{biasesFileTemplate + "l3.csv", COLUMN_MAJOR, 0 , numberOfThreads};
-                _B4 = Dense{biasesFileTemplate + "l4.csv", COLUMN_MAJOR, 0 , numberOfThreads};
+                _B0 = Dense{biasesFileTemplate + "l0.csv", COLUMN_MAJOR, 0, numberOfThreads};
+                _B1 = Dense{biasesFileTemplate + "l1.csv", COLUMN_MAJOR, 0, numberOfThreads};
+                _B2 = Dense{biasesFileTemplate + "l2.csv", COLUMN_MAJOR, 0, numberOfThreads};
+                _B3 = Dense{biasesFileTemplate + "l3.csv", COLUMN_MAJOR, 0, numberOfThreads};
+                _B4 = Dense{biasesFileTemplate + "l4.csv", COLUMN_MAJOR, 0, numberOfThreads};
 
-                _output = Dense(_B4.getRows(), 1, COLUMN_MAJOR, numberOfThreads);
-                _tmp1 = Dense(_B0.getRows(), 1, COLUMN_MAJOR, numberOfThreads);
-                _tmp2 = Dense(_B0.getRows(), 1, COLUMN_MAJOR, numberOfThreads);
+                _outputSample = Dense(_B4.getRows(), 1, COLUMN_MAJOR, numberOfThreads);
+                _tmp1Sample = Dense(_B0.getRows(), 1, COLUMN_MAJOR, numberOfThreads);
+                _tmp2Sample = Dense(_B0.getRows(), 1, COLUMN_MAJOR, numberOfThreads);
+
+                _outputMatrix = Dense(_B4.getRows(), 10'000, COLUMN_MAJOR, numberOfThreads);
+                _tmp1Matrix = Dense(_B0.getRows(), 10'000, COLUMN_MAJOR, numberOfThreads);
+                _tmp2Matrix = Dense(_B0.getRows(), 10'000, COLUMN_MAJOR, numberOfThreads);
             }
 
-            uint32_t predictRaw(float *input)
+            uint32_t predictRowRaw(float *input)
             {
                 using namespace Matrix;
 
+                _predictRow = true;
                 _input.setFloatMatrix(input, _W0.getColumns(), 1, COLUMN_MAJOR);
                 _semaphore.release(numberOfThreads - 1);
 
-                _W0.dotAddActivateThread(_input, _B0, _tmp1, ReLU, numberOfThreads, 0);
+                _W0.dotAddActivateRowThread(_input, _B0, _tmp1Sample, ReLU, numberOfThreads, 0);
                 _barrier.arrive_and_wait();
 
-                _W1.dotAddActivateThread(_tmp1, _B1, _tmp2, ReLU, numberOfThreads, 0);
+                _W1.dotAddActivateRowThread(_tmp1Sample, _B1, _tmp2Sample, ReLU, numberOfThreads, 0);
                 _barrier.arrive_and_wait();
 
-                _W2.dotAddActivateThread(_tmp2, _B2, _tmp1, ReLU, numberOfThreads, 0);
+                _W2.dotAddActivateRowThread(_tmp2Sample, _B2, _tmp1Sample, ReLU, numberOfThreads, 0);
                 _barrier.arrive_and_wait();
 
-                _W3.dotAddActivateThread(_tmp1, _B3, _tmp2, ReLU, numberOfThreads, 0);
+                _W3.dotAddActivateRowThread(_tmp1Sample, _B3, _tmp2Sample, ReLU, numberOfThreads, 0);
                 _barrier.arrive_and_wait();
 
-                _W4.dotAddActivateThread(_tmp2, _B4, _output, identity, numberOfThreads, 0);
+                _W4.dotAddActivateRowThread(_tmp2Sample, _B4, _outputSample, identity, numberOfThreads, 0);
                 _barrier.arrive_and_wait();
 
-                return _output.argmax();
+                return _outputSample.argmax();
+            }
+
+            Matrix::Dense predictColumnRaw(float *input, uint16_t numberOfColumns)
+            {
+                using namespace Matrix;
+
+                _predictRow = false;
+                _input.setFloatMatrix(input, _W0.getColumns(), numberOfColumns, COLUMN_MAJOR);
+                _semaphore.release(numberOfThreads - 1);
+
+                _W0.dotAddActivateColumnThread(_input, _B0, _tmp1Matrix, ReLU, numberOfThreads, 0);
+                _W1.dotAddActivateColumnThread(_tmp1Matrix, _B1, _tmp2Matrix, ReLU, numberOfThreads, 0);
+                _W2.dotAddActivateColumnThread(_tmp2Matrix, _B2, _tmp1Matrix, ReLU, numberOfThreads, 0);
+                _W3.dotAddActivateColumnThread(_tmp1Matrix, _B3, _tmp2Matrix, ReLU, numberOfThreads, 0);
+                _W4.dotAddActivateColumnThread(_tmp2Matrix, _B4, _outputMatrix, identity, numberOfThreads, 0);
+                _barrier.arrive_and_wait();
+
+                return _outputMatrix.argmax(0);
             }
     };
 

@@ -53,6 +53,8 @@ namespace Matrix
 
             virtual void saveAsBinary(std::string fileName) override;
             virtual void saveAsCSV(std::string fileName) override;
+            void dumpData(std::string fileName);
+            void loadDumpedData(std::string fileName, uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority);
 
             void add(Dense &operandMatrix);
 
@@ -83,12 +85,19 @@ namespace Matrix
             void dotAddActivate(Dense &dotMatrix, Dense &addMatrix, Dense &targetMatrix, float (*activationFunction)(float));
             Dense dotAddActivate(Dense &dotMatrix, Dense &addMatrix, float (*activationFunction)(float));
 
-            void dotAddActivateThread(Dense &dotMatrix, Dense &addMatrix, Dense &targetMatrix, float (*activationFunction)(float),
-                                      uint8_t numberOfThreads, uint8_t threadId);
-            void dotAddActivateThreads(Dense &dotMatrix, Dense &addMatrix, Dense &targetMatrix, float (*activationFunction)(float),
-                                       uint8_t numberOfThreads);
-            Dense dotAddActivateThreads(Dense &dotMatrix, Dense &addMatrix, float (*activationFunction)(float),
-                                        uint8_t numberOfThreads);
+            void dotAddActivateRowThread(Dense &dotMatrix, Dense &addMatrix, Dense &targetMatrix, float (*activationFunction)(float),
+                                         uint8_t numberOfThreads, uint8_t threadId);
+            void dotAddActivateRowThreads(Dense &dotMatrix, Dense &addMatrix, Dense &targetMatrix, float (*activationFunction)(float),
+                                          uint8_t numberOfThreads);
+            Dense dotAddActivateRowThreads(Dense &dotMatrix, Dense &addMatrix, float (*activationFunction)(float),
+                                           uint8_t numberOfThreads);
+
+            void dotAddActivateColumnThread(Dense &dotMatrix, Dense &addMatrix, Dense &targetMatrix, float (*activationFunction)(float),
+                                            uint8_t numberOfThreads, uint8_t threadId);
+            void dotAddActivateColumnThreads(Dense &dotMatrix, Dense &addMatrix, Dense &targetMatrix, float (*activationFunction)(float),
+                                             uint8_t numberOfThreads);
+            Dense dotAddActivateColumnThreads(Dense &dotMatrix, Dense &addMatrix, float (*activationFunction)(float),
+                                              uint8_t numberOfThreads);
     };
 }
 

@@ -88,7 +88,6 @@ void Mnist32x32_4L::predictOptimized(Matrix::Dense &input, Matrix::Dense &output
 Dense Mnist32x32_4L::predictOptimized(Matrix::Dense &input)
 {
     predictOptimized(input, _outputMatrix);
-    _outputMatrix.printMatrix(3);
     return _outputMatrix.argmax(0);
 }
 
