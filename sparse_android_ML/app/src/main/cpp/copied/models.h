@@ -77,12 +77,7 @@ namespace Models
             bool _run;
             bool _predictRow;
 
-            static float identity(float x)
-            {
-                return x;
-            }
-
-            void predictThread(uint16_t threadId)
+            void predictThread(uint8_t threadId)
             {
                 using namespace Matrix;
 
@@ -198,9 +193,10 @@ namespace Models
                 using namespace Matrix;
 
                 _predictRow = false;
+                _input.setFloatMatrix(input.getData(), input.getRows(), input.getColumns(), COLUMN_MAJOR);
                 _semaphore.release(numberOfThreads - 1);
 
-                _W0.dotAddActivateColumnThread(input, _B0, _tmp1Matrix, ReLU, numberOfThreads, 0);
+                _W0.dotAddActivateColumnThread(_input, _B0, _tmp1Matrix, ReLU, numberOfThreads, 0);
                 _W1.dotAddActivateColumnThread(_tmp1Matrix, _B1, _tmp2Matrix, ReLU, numberOfThreads, 0);
                 _W2.dotAddActivateColumnThread(_tmp2Matrix, _B2, _tmp1Matrix, ReLU, numberOfThreads, 0);
                 _W3.dotAddActivateColumnThread(_tmp1Matrix, _B3, _tmp2Matrix, ReLU, numberOfThreads, 0);
@@ -234,7 +230,7 @@ namespace Models
             Matrix::Dense predict(Matrix::Dense &input);
     };
 
-    template <uint8_t K, uint8_t N>
+    template <uint8_t K, uint8_t N, uint8_t numberOfThreads>
     class Mnist32x32_4L_KinMSparse
     {
         private:
@@ -258,26 +254,67 @@ namespace Models
             Matrix::Dense _tmp1Matrix;
             Matrix::Dense _tmp2Matrix;
 
-            template <float (*activationFunction)(float)>
-            void predictActivationThread(Matrix::Dense &input, Matrix::Dense &tmp, uint8_t numberOfThreads, uint8_t threadId, 
-                                         std::barrier<> &syncBarrier)
+            std::counting_semaphore<numberOfThreads - 1> _semaphore;
+            std::barrier<> _barrier;
+            std::thread _threads[numberOfThreads - 1];
+            bool _run;
+            bool _predictRow;
+
+            void predictThread(uint8_t threadId)
             {
-                _W0.template dotAddActivate<activationFunction>(input, _B0, tmp, numberOfThreads, threadId);
-                syncBarrier.arrive_and_wait();
+                using namespace Matrix;
 
-                _W1.template dotAddActivate<activationFunction>(tmp, _B1, input, numberOfThreads, threadId);
-                syncBarrier.arrive_and_wait();
+                _semaphore.acquire();
+                while (_run)
+                {
+                    if (_predictRow)
+                    {
+                        _W0.template dotAddActivateRowThread<ReLU>(_input, _B0, _tmp1Sample, numberOfThreads, threadId);
+                        _barrier.arrive_and_wait();
 
-                _W2.template dotAddActivate<activationFunction>(input, _B2, tmp, numberOfThreads, threadId);
-                syncBarrier.arrive_and_wait();
+                        _W1.template dotAddActivateRowThread<ReLU>(_tmp1Sample, _B1, _tmp2Sample, numberOfThreads, threadId);
+                        _barrier.arrive_and_wait();
 
-                _W3.template dotAddActivate<activationFunction>(tmp, _B3, input, numberOfThreads, threadId);
-                syncBarrier.arrive_and_wait();
+                        _W2.template dotAddActivateRowThread<ReLU>(_tmp2Sample, _B2, _tmp1Sample, numberOfThreads, threadId);
+                        _barrier.arrive_and_wait();
+
+                        _W3.template dotAddActivateRowThread<ReLU>(_tmp1Sample, _B3, _tmp2Sample, numberOfThreads, threadId);
+                        _barrier.arrive_and_wait();
+
+                        _W4.dotAddActivateRowThread(_tmp2Sample, _B4, _outputSample, identity, numberOfThreads, threadId);
+                        _barrier.arrive_and_wait();
+                    }
+                    else
+                    {
+                        _W0.template dotAddActivateColumnThread<ReLU>(_input, _B0, _tmp1Matrix, numberOfThreads, threadId);
+                        _W1.template dotAddActivateColumnThread<ReLU>(_tmp1Matrix, _B1, _tmp2Matrix, numberOfThreads, threadId);
+                        _W2.template dotAddActivateColumnThread<ReLU>(_tmp2Matrix, _B2, _tmp1Matrix, numberOfThreads, threadId);
+                        _W3.template dotAddActivateColumnThread<ReLU>(_tmp1Matrix, _B3, _tmp2Matrix, numberOfThreads, threadId);
+                        _W4.dotAddActivateColumnThread(_tmp2Matrix, _B4, _outputMatrix, identity, numberOfThreads, threadId);        
+                        _barrier.arrive_and_wait();
+                    }
+
+                    _semaphore.acquire();
+                }
+            }
+
+            void startThreads()
+            {
+                using namespace std;
+
+                for (uint8_t i = 1; i < numberOfThreads; i++)
+                {
+                    _threads[i - 1] = thread(&Mnist32x32_4L_KinMSparse::predictThread, this, i);
+                }
             }
 
         public:
-            Mnist32x32_4L_KinMSparse() {};
-            Mnist32x32_4L_KinMSparse(std::string weightsFileTemplate, std::string biasesFileTemplate) : 
+            Mnist32x32_4L_KinMSparse() : _semaphore(0), _barrier(numberOfThreads), _run(true), _predictRow(true)
+            {
+                startThreads();
+            }
+
+            Mnist32x32_4L_KinMSparse(std::string weightsFileTemplate, std::string biasesFileTemplate) :
                 _W0{weightsFileTemplate + "l0.csv"},
                 _W1{weightsFileTemplate + "l1.csv"},
                 _W2{weightsFileTemplate + "l2.csv"},
@@ -289,16 +326,25 @@ namespace Models
                 _B3{biasesFileTemplate + "l3.csv", Matrix::COLUMN_MAJOR},
                 _B4{biasesFileTemplate + "l4.csv", Matrix::COLUMN_MAJOR},
                 _outputSample{10, 1, Matrix::COLUMN_MAJOR},
-                _outputMatrix{10, 1024, Matrix::COLUMN_MAJOR},
+                _outputMatrix{10, 10'000, Matrix::COLUMN_MAJOR},
                 _tmp1Sample{1024, 1, Matrix::COLUMN_MAJOR},
                 _tmp2Sample{1024, 1, Matrix::COLUMN_MAJOR},
-                _tmp1Matrix{1024, 1024, Matrix::COLUMN_MAJOR},
-                _tmp2Matrix{1024, 1024, Matrix::COLUMN_MAJOR}
-            { }
+                _tmp1Matrix{1024, 10'000, Matrix::COLUMN_MAJOR},
+                _tmp2Matrix{1024, 10'000, Matrix::COLUMN_MAJOR},
+                _semaphore(0), _barrier(numberOfThreads), _run(true), _predictRow(true)
+            { 
+                startThreads();
+            }
 
             ~Mnist32x32_4L_KinMSparse()
             {
                 _input.clear();
+                _run = false;
+                _semaphore.release(numberOfThreads - 1);
+                for (uint8_t i = 0; i < numberOfThreads - 1; i++)
+                {
+                    _threads[i].join();
+                }
             }
 
             void load(std::string weightsFileTemplate, std::string biasesFileTemplate)
@@ -325,81 +371,15 @@ namespace Models
                 _tmp2Matrix = Dense{1024, 10'000, COLUMN_MAJOR};
             }
 
-            void predict(Matrix::Dense &input, Matrix::Dense &output)
-            {
-                using namespace Matrix;
-                
-                Dense tmp = _W0.dot(input);
-                tmp.add(_B0);
-                tmp.ReLU();
-                
-                _W1.dot(tmp, input);
-                input.add(_B1);
-                input.ReLU();
-            
-                _W2.dot(input, tmp);
-                tmp.add(_B2);
-                tmp.ReLU();
-            
-                _W3.dot(tmp, input);
-                input.add(_B3);
-                input.ReLU();
-            
-                _W4.dot(input, output);
-                output.add(_B4);
-            }
-
-            Matrix::Dense predict(Matrix::Dense &input)
-            {
-                using namespace Matrix;
-
-                Dense output(_B4.getRows(), input.getColumns(), COLUMN_MAJOR);
-                predict(input, output);
-                return output;
-            }
-
-            void predictThreads(Matrix::Dense &input, Matrix::Dense &output)
-            {
-                using namespace Matrix;
-                
-                Dense tmp = _W0.dotThreads(input);
-                tmp.add(_B0);
-                tmp.ReLU();
-                
-                _W1.dotThreads(tmp, input);
-                input.add(_B1);
-                input.ReLU();
-            
-                _W2.dotThreads(input, tmp);
-                tmp.add(_B2);
-                tmp.ReLU();
-            
-                _W3.dotThreads(tmp, input);
-                input.add(_B3);
-                input.ReLU();
-            
-                _W4.dot(input, output);
-                output.add(_B4);
-            }
-
-            Matrix::Dense predictThreads(Matrix::Dense &input)
-            {
-                using namespace Matrix;
-
-                Dense output(_B4.getRows(), input.getColumns(), COLUMN_MAJOR);
-                predictThreads(input, output);
-                return output;
-            }
- 
-            uint8_t predictOptimizedRawSample(float *input)
+            uint8_t predictRawSample(float *input)
             {
                 using namespace Matrix;
 
                 _input.setFloatMatrix(input, 1024, 1, COLUMN_MAJOR);
-                _W0.template dotAddActivate<ReLU>(_input, _B0, _tmp1Sample);
-                _W1.template dotAddActivate<ReLU>(_tmp1Sample, _B1, _tmp2Sample);
-                _W2.template dotAddActivate<ReLU>(_tmp2Sample, _B2,_tmp1Sample);
-                _W3.template dotAddActivate<ReLU>(_tmp1Sample, _B3, _tmp2Sample);
+                _W0.template dotAddActivateRowThread<ReLU>(_input, _B0, _tmp1Sample);
+                _W1.template dotAddActivateRowThread<ReLU>(_tmp1Sample, _B1, _tmp2Sample);
+                _W2.template dotAddActivateRowThread<ReLU>(_tmp2Sample, _B2,_tmp1Sample);
+                _W3.template dotAddActivateRowThread<ReLU>(_tmp1Sample, _B3, _tmp2Sample);
 
                 _W4.dot(_tmp2Sample, _outputSample);
                 _outputSample.add(_B4);
@@ -407,14 +387,14 @@ namespace Models
                 return _outputSample.argmax();
             }
 
-            Matrix::Dense predictOptimizedMatrix(Matrix::Dense input)
+            Matrix::Dense predictMatrix(Matrix::Dense input)
             {
                 using namespace Matrix;
 
-                _W0.template dotAddActivate<ReLU>(input, _B0, _tmp1Matrix);
-                _W1.template dotAddActivate<ReLU>(_tmp1Matrix, _B1, _tmp2Matrix);
-                _W2.template dotAddActivate<ReLU>(_tmp2Matrix, _B2,_tmp1Matrix);
-                _W3.template dotAddActivate<ReLU>(_tmp1Matrix, _B3, _tmp2Matrix);
+                _W0.template dotAddActivateRowThread<ReLU>(input, _B0, _tmp1Matrix);
+                _W1.template dotAddActivateRowThread<ReLU>(_tmp1Matrix, _B1, _tmp2Matrix);
+                _W2.template dotAddActivateRowThread<ReLU>(_tmp2Matrix, _B2,_tmp1Matrix);
+                _W3.template dotAddActivateRowThread<ReLU>(_tmp1Matrix, _B3, _tmp2Matrix);
 
                 _W4.dot(_tmp2Matrix, _outputMatrix);
                 _outputMatrix.add(_B4);
@@ -422,39 +402,49 @@ namespace Models
                 return _outputMatrix.argmax(0);
             }
 
-            template <uint8_t numberOfThreads>
-            void predictOptimizedThreads(Matrix::Dense &input, Matrix::Dense &output)
+            uint8_t predictThreadsRawSample(float *input)
             {
                 using namespace Matrix;
-                using namespace std;
 
-                thread threads[numberOfThreads];
-                barrier syncBarrier(numberOfThreads);
+                _predictRow = true;
+                _input.setFloatMatrix(input, 1024, 1, COLUMN_MAJOR);
+                _semaphore.release(numberOfThreads - 1);
                 
-                Dense tmp(_W0.getRows(), input.getColumns(), COLUMN_MAJOR);
+                _W0.template dotAddActivateRowThread<ReLU>(_input, _B0, _tmp1Sample, numberOfThreads, 0);
+                _barrier.arrive_and_wait();
 
-                for (uint8_t i = 0; i < numberOfThreads; i++)
-                {
-                    threads[i] = thread(&Mnist32x32_4L_KinMSparse::predictActivationThread<ReLU>, this, ref(input), ref(tmp), numberOfThreads, i, ref(syncBarrier));
-                }
+                _W1.template dotAddActivateRowThread<ReLU>(_tmp1Sample, _B1, _tmp2Sample, numberOfThreads, 0);
+                _barrier.arrive_and_wait();
 
-                for (uint8_t i = 0; i < numberOfThreads; i++)
-                {
-                    threads[i].join();
-                }
+                _W2.template dotAddActivateRowThread<ReLU>(_tmp2Sample, _B2, _tmp1Sample, numberOfThreads, 0);
+                _barrier.arrive_and_wait();
 
-                _W4.dot(input, output);
-                output.add(_B4);
+                _W3.template dotAddActivateRowThread<ReLU>(_tmp1Sample, _B3, _tmp2Sample, numberOfThreads, 0);
+                _barrier.arrive_and_wait();
+
+                _W4.dotAddActivateRowThread(_tmp2Sample, _B4, _outputSample, identity, numberOfThreads, 0);
+                _barrier.arrive_and_wait();
+
+                return _outputSample.argmax();
             }
 
-            template <uint8_t numberOfThreads>
-            Matrix::Dense predictOptimizedThreads(Matrix::Dense &input)
+            Matrix::Dense predictThreadsMatrix(Matrix::Dense input)
             {
                 using namespace Matrix;
 
-                Dense output(_B4.getRows(), input.getColumns(), COLUMN_MAJOR);
-                predictOptimizedThreads<numberOfThreads>(input, output);
-                return output;
+                _predictRow = false;
+                _input.setFloatMatrix(input.getData(), input.getRows(), input.getColumns(), COLUMN_MAJOR);
+                _semaphore.release(numberOfThreads - 1);
+
+                _W0.template dotAddActivateColumnThread<ReLU>(_input, _B0, _tmp1Matrix, numberOfThreads, 0);
+                _W1.template dotAddActivateColumnThread<ReLU>(_tmp1Matrix, _B1, _tmp2Matrix, numberOfThreads, 0);
+                _W2.template dotAddActivateColumnThread<ReLU>(_tmp2Matrix, _B2, _tmp1Matrix, numberOfThreads, 0);
+                _W3.template dotAddActivateColumnThread<ReLU>(_tmp1Matrix, _B3, _tmp2Matrix, numberOfThreads, 0);
+                _W4.dotAddActivateColumnThread(_tmp2Matrix, _B4, _outputMatrix, identity, numberOfThreads, 0);
+
+                _barrier.arrive_and_wait();
+
+                return _outputMatrix.argmax(0);
             }
     };
 }

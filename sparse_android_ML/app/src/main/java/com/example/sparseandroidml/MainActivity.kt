@@ -246,7 +246,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        //saveConfigToInternalStorage()
+        saveConfigToInternalStorage()
 
         val X_test = loadCsvFile("mnist_X_test.csv")
         val y_test = loadCsvFile("mnist_y_test.csv")
@@ -600,6 +600,90 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        with (binding.classify4in16ThreadsBtn) {
+            setOnClickListener {
+                val pixelArray = getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
+                val formater = DecimalFormat("#.###")
+
+                val elapsed = measureNanoTime {
+                    if (_mode == Modes.SAMPLES) {
+                        var predictedIndex : Int = 0
+                        for (i in 0 until _runs)
+                        {
+                            predictedIndex = run4in16modelThreads(pixelArray)
+                        }
+                        binding.resultText.text = predictedIndex.toString()
+                    }
+                    else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        var correctPredictions : Int = 0
+                        for (i in X_test.indices)
+                        {
+                            val predictedIndex = run4in16modelThreads(X_test[i])
+                            if (predictedIndex == y_test[i][0].toInt()) {
+                                correctPredictions++
+                            }
+                        }
+                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
+                    }
+                    else if (_mode == Modes.TEST_SET) {
+                        val accuracy = run4in16modelThreadsTestSet() * 100
+                        binding.resultText.text = "${formater.format(accuracy)} %"
+                    }
+                }
+
+                binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
+
+                if (_mode == Modes.SAMPLES) {
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f)} ms"
+                }
+                else {
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / 10_000)} ms"
+                }
+            }
+        }
+
+        with (binding.classify2in16ThreadsBtn) {
+            setOnClickListener {
+                val pixelArray = getPixelArray(rescaleAndConvertToMonochrome(binding.digitDrawView.getBitmap(), 32, 32))
+                val formater = DecimalFormat("#.###")
+
+                val elapsed = measureNanoTime {
+                    if (_mode == Modes.SAMPLES) {
+                        var predictedIndex : Int = 0
+                        for (i in 0 until _runs)
+                        {
+                            predictedIndex = run2in16modelThreads(pixelArray)
+                        }
+                        binding.resultText.text = predictedIndex.toString()
+                    }
+                    else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        var correctPredictions : Int = 0
+                        for (i in X_test.indices)
+                        {
+                            val predictedIndex = run2in16modelThreads(X_test[i])
+                            if (predictedIndex == y_test[i][0].toInt()) {
+                                correctPredictions++
+                            }
+                        }
+                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
+                    }
+                    else if (_mode == Modes.TEST_SET) {
+                        val accuracy = run2in16modelThreadsTestSet() * 100
+                        binding.resultText.text = "${formater.format(accuracy)} %"
+                    }
+                }
+
+                binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
+
+                if (_mode == Modes.SAMPLES) {
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f)} ms"
+                }
+                else {
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / 10_000)} ms"
+                }
+            }
+        }
+
         with (binding.digitDrawView) {
             setStrokeWidth(70f)
             setColor(Color.WHITE)
@@ -664,8 +748,11 @@ class MainActivity : AppCompatActivity() {
     external fun run4in16modelTestSet(): Float
     external fun run2in16model(sample: FloatArray): Int
     external fun run2in16modelTestSet(): Float
+    external fun run4in16modelThreads(sample: FloatArray): Int
+    external fun run4in16modelThreadsTestSet(): Float
+    external fun run2in16modelThreads(sample: FloatArray): Int
+    external fun run2in16modelThreadsTestSet(): Float
     external fun runDenseModelNNAPI(sample: FloatArray): Int
-    external fun testMLAPI(): String
     external fun runDenseModelTestSet(): Float
     external fun runDenseModelNNAPITestSet(): Float
 

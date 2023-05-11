@@ -54,7 +54,7 @@ int main()
 #if NETWORK_TEST
     Dense groundTruth("datasets/mnist_y_test.csv", COLUMN_MAJOR);
 
-    Dense input("datasets/mnist_X_test_T.csv", COLUMN_MAJOR);
+    /*Dense input("datasets/mnist_X_test_T.csv", COLUMN_MAJOR);
     Mnist32x32_4L model("weights/weights_", "weights/biases_");
     auto start = chrono::high_resolution_clock::now();
     Dense output = model.predictOptimized(input);
@@ -66,12 +66,38 @@ int main()
     Mnist32x32_4L_Threads<8> modelThreads;
     modelThreads.load("weights/weights_", "weights/biases_");
     start = chrono::high_resolution_clock::now();
-    output = modelThreads.predictMatrix(input.getData(), 10'000);
+    output = modelThreads.predictMatrix(input);
     end = chrono::high_resolution_clock::now();
     cerr << "Time of prediction (dense): " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
     //Dense results = output.argmax(0);
-    cerr << "Accuracy: " << output.percentageDifference(groundTruth) << endl;
+    cerr << "Accuracy: " << output.percentageDifference(groundTruth) << endl;*/
+
+    Dense input("datasets/mnist_X_test_T.csv", COLUMN_MAJOR);
+
+    Mnist32x32_4L_KinMSparse<4, 16, 8> model4in16Sparse;
+    model4in16Sparse.load("weights/weights_", "weights/biases_");
+    auto start = chrono::high_resolution_clock::now();
+    Dense output4in16Sparse = model4in16Sparse.predictThreadsMatrix(input);
+    auto end = chrono::high_resolution_clock::now();
+    cerr << "Time of prediction (4 in 16 template): " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
+    cerr << "Accuracy: " << output4in16Sparse.percentageDifference(groundTruth) << endl;
+
+    Mnist32x32_4L_KinMSparse<3, 16, 8> model3in16Sparse;
+    model3in16Sparse.load("weights/weights_", "weights/biases_");
+    start = chrono::high_resolution_clock::now();
+    Dense output3in16Sparse = model3in16Sparse.predictThreadsMatrix(input);
+    end = chrono::high_resolution_clock::now();
+    cerr << "Time of prediction (4 in 16 template): " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
+    cerr << "Accuracy: " << output3in16Sparse.percentageDifference(groundTruth) << endl;
     
+    Mnist32x32_4L_KinMSparse<2, 16, 8> model2in16Sparse;
+    model2in16Sparse.load("weights/weights_", "weights/biases_");
+    start = chrono::high_resolution_clock::now();
+    Dense output2in16Sparse = model2in16Sparse.predictThreadsMatrix(input);
+    end = chrono::high_resolution_clock::now();
+    cerr << "Time of prediction (2 in 16 template): " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
+    cerr << "Accuracy: " << output2in16Sparse.percentageDifference(groundTruth) << endl;
+
     /*start = chrono::high_resolution_clock::now();
     for (int i = 0; i < 10000; i++)
     {

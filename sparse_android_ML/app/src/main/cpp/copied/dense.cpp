@@ -55,8 +55,6 @@ Dense::Dense(uint16_t rows, uint16_t columns, DimensionMajorityEnum dimMajority,
 Dense::Dense(const Matrix::Dense& other) : 
     Base(other._rows, other._columns, other._dimMajority), _bytePadding{other._bytePadding}
 {
-    cout << "Dense copy constructor called." << endl;
-    cout << _size << endl;
     _byteMatrix = new byte[_size]();
     memcpy(_byteMatrix, other._byteMatrix, _size);
 }

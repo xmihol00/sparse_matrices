@@ -7,6 +7,11 @@ namespace Matrix
     {
         return (x > 0.0f ? x : 0.0f);
     }
+
+    constexpr float identity(float x) 
+    {
+        return x;
+    }
 }
 
 #endif
