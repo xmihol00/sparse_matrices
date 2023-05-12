@@ -57,7 +57,7 @@ int main()
     /*Dense input("datasets/mnist_X_test_T.csv", COLUMN_MAJOR);
     Mnist32x32_4L model("weights/weights_", "weights/biases_");
     auto start = chrono::high_resolution_clock::now();
-    Dense output = model.predictOptimized(input);
+    Dense output = model.predictOptimizedMatrix(input);
     auto end = chrono::high_resolution_clock::now();
     cerr << "Time of prediction (dense): " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
     cerr << "Accuracy: " << output.percentageDifference(groundTruth) << endl;
@@ -101,7 +101,7 @@ int main()
     /*start = chrono::high_resolution_clock::now();
     for (int i = 0; i < 10000; i++)
     {
-        output = model.predictOptimized(input);
+        output = model.predictOptimizedMatrix(input);
     }
     end = chrono::high_resolution_clock::now();
     cerr << "Time of prediction (dense optimized): " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;

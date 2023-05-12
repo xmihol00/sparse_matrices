@@ -27,6 +27,10 @@ import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.file.Files
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 
 class TFLiteModel(context: Context, modelFileName: String) {
     private var tflite: Interpreter
@@ -43,7 +47,6 @@ class TFLiteModel(context: Context, modelFileName: String) {
     private val outputQuantZeroPoint: Int
 
     init {
-
         tflite = Interpreter(loadModelFile(context, modelFileName))
 
         val inputTensor = tflite.getInputTensor(0)
@@ -99,20 +102,10 @@ class TFLiteModel(context: Context, modelFileName: String) {
     }
 
     fun runInference(inputByteBuffer: ByteBuffer): Int {
-        //val inputByteBuffer = ByteBuffer.allocateDirect(input.size * inputDataType.byteSize()).order(ByteOrder.nativeOrder())
         val outputByteBuffer = ByteBuffer.allocateDirect(outputShape[0] * outputShape[1] * outputDataType.byteSize()).order(ByteOrder.nativeOrder())
 
-        // Convert float input to int8
-        /*inputByteBuffer.rewind()
-        for (i in input.indices) {
-            val quantValue = ((input[i] / inputQuantScale) + inputQuantZeroPoint).toInt().toByte()
-            inputByteBuffer.put(quantValue)
-        }*/
-
-        // Run inference
         tflite?.run(inputByteBuffer, outputByteBuffer)
 
-        // Find the index with the highest value
         var maxIndex = -1
         var maxValue = Int.MIN_VALUE
         outputByteBuffer.rewind()
@@ -130,10 +123,6 @@ class TFLiteModel(context: Context, modelFileName: String) {
     fun close() {
         tflite?.close()
     }
-
-    companion object {
-        private const val NUM_CLASSES = 10 // Replace with the number of output classes in your modelDense
-    }
 }
 
 class MainActivity : AppCompatActivity() {
@@ -144,10 +133,44 @@ class MainActivity : AppCompatActivity() {
     private lateinit var optimizedModel: OptimizedMnist
     private var _runs: Int = 1
 
+    @Serializable
     enum class Modes {
-        SAMPLES, TEST_SET, SAMPLED_TEST_SET,
+        SAMPLES, TEST_SET, SAMPLED_TEST_SET
     }
     private var _mode: Modes = Modes.SAMPLES
+
+    @Serializable
+    data class Measurement(
+        val latency: Float,
+        val numberOfSamples: Int,
+        val predictionType: Modes,
+        val modelName: String
+    )
+    private val _measurements = mutableListOf<Measurement>()
+
+
+    private fun storeMeasurements() : Unit {
+        var oldMeasurements: List<Measurement>
+        val fileName = "measurements.json"
+        try {
+            try {
+                val oldMeasurementsStr = this.openFileInput(fileName).bufferedReader().use { it.readText() }
+                oldMeasurements = Json.decodeFromString(oldMeasurementsStr)
+            }
+            catch (e:Exception)
+            {
+                oldMeasurements = listOf()
+            }
+            _measurements.addAll(oldMeasurements)
+            val outputStreamWriter = OutputStreamWriter(this.openFileOutput(fileName, Context.MODE_PRIVATE))
+            outputStreamWriter.use { it.write(Json.encodeToString(_measurements)) }
+        }
+        catch (e:Exception)
+        {
+            val message : String = if (e.message != null) e.message.toString() else "No message"
+            Log.d("storeMeasurements", message)
+        }
+    }
 
     private fun loadCsvFile(filePath: String): Array<FloatArray> {
         val rows = mutableListOf<FloatArray>()
@@ -261,6 +284,13 @@ class MainActivity : AppCompatActivity() {
                 binding.resultText.text = "" //testMLAPI()
                 binding.performanceAverageText.text = ""
                 binding.performanceTotalText.text = ""
+                _measurements.clear()
+            }
+        }
+
+        with (binding.saveBtn) {
+            setOnClickListener {
+                storeMeasurements()
             }
         }
 
@@ -283,6 +313,7 @@ class MainActivity : AppCompatActivity() {
                    }
                    else if (_mode == Modes.SAMPLED_TEST_SET) {
                        var correctPredictions : Int = 0
+                       binding.resultText.text = "TFDefault..."
                        for (i in X_test.indices)
                        {
                            inputFeature.loadArray(X_test[i])
@@ -293,18 +324,20 @@ class MainActivity : AppCompatActivity() {
                                correctPredictions++
                            }
                        }
-                       binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
+                       binding.resultText.text = "TFDefault: ${formater.format(correctPredictions / 100f)} %"
                    }
                }
 
                binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
 
                if (_mode == Modes.SAMPLES) {
-                   binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f)} ms"
+                   binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
                }
                else if (_mode == Modes.SAMPLED_TEST_SET) {
                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / 10_000)} ms"
                }
+
+               _measurements.add(Measurement(elapsed / 1000_000.0f, _runs, _mode, "TFDefault"))
            }
         }
 
@@ -327,6 +360,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     else if (_mode == Modes.SAMPLED_TEST_SET) {
                         var correctPredictions : Int = 0
+                        binding.resultText.text = "TFOptimized..."
                         for (i in X_test.indices)
                         {
                             inputFeature.loadArray(X_test[i])
@@ -337,18 +371,20 @@ class MainActivity : AppCompatActivity() {
                                 correctPredictions++
                             }
                         }
-                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
+                        binding.resultText.text = "TFOptimized: ${formater.format(correctPredictions / 100f)} %"
                     }
                 }
 
                 binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
 
                 if (_mode == Modes.SAMPLES) {
-                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f)} ms"
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
                 }
                 else if (_mode == Modes.SAMPLED_TEST_SET) {
                     binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / 10_000)} ms"
                 }
+
+                _measurements.add(Measurement(elapsed / 1000_000.0f, _runs, _mode, "TFOptimized"))
             }
         }
 
@@ -367,6 +403,7 @@ class MainActivity : AppCompatActivity() {
                         binding.resultText.text = predictedIndex.toString()
                     }
                     else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        binding.resultText.text = "TFQuantized..."
                         var correctPredictions : Int = 0
                         for (i in X_test.indices)
                         {
@@ -375,18 +412,20 @@ class MainActivity : AppCompatActivity() {
                                 correctPredictions++
                             }
                         }
-                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
+                        binding.resultText.text = "TFQuantized: ${formater.format(correctPredictions / 100f)} %"
                     }
                 }
 
                 binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
 
                 if (_mode == Modes.SAMPLES) {
-                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f)} ms"
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
                 }
                 else if (_mode == Modes.SAMPLED_TEST_SET) {
                     binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / 10_000)} ms"
                 }
+
+                _measurements.add(Measurement(elapsed / 1000_000.0f, _runs, _mode, "TFQuantized"))
             }
         }
 
@@ -405,6 +444,7 @@ class MainActivity : AppCompatActivity() {
                         binding.resultText.text = predictedIndex.toString()
                     }
                     else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        binding.resultText.text = "Dense..."
                         var correctPredictions : Int = 0
                         for (i in X_test.indices)
                         {
@@ -413,22 +453,25 @@ class MainActivity : AppCompatActivity() {
                                 correctPredictions++
                             }
                         }
-                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
+                        binding.resultText.text = "Dense: ${formater.format(correctPredictions / 100f)} %"
                     }
                     else if (_mode == Modes.TEST_SET) {
+                        binding.resultText.text = "Dense..."
                         val accuracy = runDenseModelTestSet() * 100
-                        binding.resultText.text = "${formater.format(accuracy)} %"
+                        binding.resultText.text = "Dense: ${formater.format(accuracy)} %"
                     }
                 }
 
                 binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
 
                 if (_mode == Modes.SAMPLES) {
-                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f)} ms"
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
                 }
                 else {
                     binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / 10_000)} ms"
                 }
+
+                _measurements.add(Measurement(elapsed / 1000_000.0f, _runs, _mode, "Dense"))
             }
         }
 
@@ -447,6 +490,7 @@ class MainActivity : AppCompatActivity() {
                         binding.resultText.text = predictedIndex.toString()
                     }
                     else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        binding.resultText.text = "DenseThreads..."
                         var correctPredictions : Int = 0
                         for (i in X_test.indices)
                         {
@@ -455,22 +499,25 @@ class MainActivity : AppCompatActivity() {
                                 correctPredictions++
                             }
                         }
-                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
+                        binding.resultText.text = "DenseThreads: ${formater.format(correctPredictions / 100f)} %"
                     }
                     else if (_mode == Modes.TEST_SET) {
+                        binding.resultText.text = "DenseThreads..."
                         val accuracy = runDenseThreadsTestSet() * 100
-                        binding.resultText.text = "${formater.format(accuracy)} %"
+                        binding.resultText.text = "DenseThreads: ${formater.format(accuracy)} %"
                     }
                 }
 
                 binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
 
                 if (_mode == Modes.SAMPLES) {
-                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f)} ms"
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
                 }
                 else {
                     binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / 10_000)} ms"
                 }
+
+                _measurements.add(Measurement(elapsed / 1000_000.0f, _runs, _mode, "DenseThreads"))
             }
         }
 
@@ -489,10 +536,12 @@ class MainActivity : AppCompatActivity() {
                         binding.resultText.text = predictedIndex.toString()
                     }
                     else if (_mode == Modes.TEST_SET) {
+                        binding.resultText.text = "DenseNNAPI..."
                         val accuracy = runDenseModelNNAPITestSet() * 100
-                        binding.resultText.text = "${formater.format(accuracy)} %"
+                        binding.resultText.text = "DenseNNAPI: ${formater.format(accuracy)} %"
                     }
                     else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        binding.resultText.text = "DenseNNAPI..."
                         var correctPredictions : Int = 0
                         for (i in X_test.indices)
                         {
@@ -501,18 +550,20 @@ class MainActivity : AppCompatActivity() {
                                 correctPredictions++
                             }
                         }
-                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
+                        binding.resultText.text = "DenseNNAPI: ${formater.format(correctPredictions / 100f)} %"
                     }
                 }
 
                 binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
 
                 if (_mode == Modes.SAMPLES) {
-                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f)} ms"
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
                 }
                 else {
                     binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / 10_000)} ms"
                 }
+
+                _measurements.add(Measurement(elapsed / 1000_000.0f, _runs, _mode, "DenseNNAPI"))
             }
         }
 
@@ -531,6 +582,7 @@ class MainActivity : AppCompatActivity() {
                         binding.resultText.text = predictedIndex.toString()
                     }
                     else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        binding.resultText.text = "4in16Sparse..."
                         var correctPredictions : Int = 0
                         for (i in X_test.indices)
                         {
@@ -539,22 +591,25 @@ class MainActivity : AppCompatActivity() {
                                 correctPredictions++
                             }
                         }
-                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
+                        binding.resultText.text = "4in16Sparse: ${formater.format(correctPredictions / 100f)} %"
                     }
                     else if (_mode == Modes.TEST_SET) {
+                        binding.resultText.text = "4in16Sparse..."
                         val accuracy = run4in16modelTestSet() * 100
-                        binding.resultText.text = "${formater.format(accuracy)} %"
+                        binding.resultText.text = "4in16Sparse: ${formater.format(accuracy)} %"
                     }
                 }
 
                 binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
 
                 if (_mode == Modes.SAMPLES) {
-                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f)} ms"
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
                 }
                 else {
                     binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / 10_000)} ms"
                 }
+
+                _measurements.add(Measurement(elapsed / 1000_000.0f, _runs, _mode, "4in16Sparse"))
             }
         }
 
@@ -573,6 +628,7 @@ class MainActivity : AppCompatActivity() {
                         binding.resultText.text = predictedIndex.toString()
                     }
                     else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        binding.resultText.text = "2in16Sparse..."
                         var correctPredictions : Int = 0
                         for (i in X_test.indices)
                         {
@@ -581,22 +637,25 @@ class MainActivity : AppCompatActivity() {
                                 correctPredictions++
                             }
                         }
-                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
+                        binding.resultText.text = "2in16Sparse: ${formater.format(correctPredictions / 100f)} %"
                     }
                     else if (_mode == Modes.TEST_SET) {
+                        binding.resultText.text = "2in16Sparse..."
                         val accuracy = run2in16modelTestSet() * 100
-                        binding.resultText.text = "${formater.format(accuracy)} %"
+                        binding.resultText.text = "2in16Sparse: ${formater.format(accuracy)} %"
                     }
                 }
 
                 binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
 
                 if (_mode == Modes.SAMPLES) {
-                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f)} ms"
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
                 }
                 else {
                     binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / 10_000)} ms"
                 }
+
+                _measurements.add(Measurement(elapsed / 1000_000.0f, _runs, _mode, "2in16Sparse"))
             }
         }
 
@@ -615,6 +674,7 @@ class MainActivity : AppCompatActivity() {
                         binding.resultText.text = predictedIndex.toString()
                     }
                     else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        binding.resultText.text = "4in16SparseThreads..."
                         var correctPredictions : Int = 0
                         for (i in X_test.indices)
                         {
@@ -623,22 +683,25 @@ class MainActivity : AppCompatActivity() {
                                 correctPredictions++
                             }
                         }
-                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
+                        binding.resultText.text = "4in16SparseThreads: ${formater.format(correctPredictions / 100f)} %"
                     }
                     else if (_mode == Modes.TEST_SET) {
+                        binding.resultText.text = "4in16SparseThreads..."
                         val accuracy = run4in16modelThreadsTestSet() * 100
-                        binding.resultText.text = "${formater.format(accuracy)} %"
+                        binding.resultText.text = "4in16SparseThreads: ${formater.format(accuracy)} %"
                     }
                 }
 
                 binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
 
                 if (_mode == Modes.SAMPLES) {
-                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f)} ms"
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
                 }
                 else {
                     binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / 10_000)} ms"
                 }
+
+                _measurements.add(Measurement(elapsed / 1000_000.0f, _runs, _mode, "4in16SparseThreads"))
             }
         }
 
@@ -657,6 +720,7 @@ class MainActivity : AppCompatActivity() {
                         binding.resultText.text = predictedIndex.toString()
                     }
                     else if (_mode == Modes.SAMPLED_TEST_SET) {
+                        binding.resultText.text = "2in16SparseThreads..."
                         var correctPredictions : Int = 0
                         for (i in X_test.indices)
                         {
@@ -665,22 +729,25 @@ class MainActivity : AppCompatActivity() {
                                 correctPredictions++
                             }
                         }
-                        binding.resultText.text = "${formater.format(correctPredictions / 100f)} %"
+                        binding.resultText.text = "2in16SparseThreads: ${formater.format(correctPredictions / 100f)} %"
                     }
                     else if (_mode == Modes.TEST_SET) {
+                        binding.resultText.text = "2in16SparseThreads..."
                         val accuracy = run2in16modelThreadsTestSet() * 100
-                        binding.resultText.text = "${formater.format(accuracy)} %"
+                        binding.resultText.text = "2in16SparseThreads: ${formater.format(accuracy)} %"
                     }
                 }
 
                 binding.performanceTotalText.text = "total: ${formater.format(elapsed / 1000_000.0f)} ms"
 
                 if (_mode == Modes.SAMPLES) {
-                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f)} ms"
+                    binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / _runs)} ms"
                 }
                 else {
                     binding.performanceAverageText.text = "average: ${formater.format(elapsed / 1000_000.0f / 10_000)} ms"
                 }
+
+                _measurements.add(Measurement(elapsed / 1000_000.0f, _runs, _mode, "2in16SparseThreads"))
             }
         }
 

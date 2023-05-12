@@ -25,7 +25,7 @@
         android:id="@+id/resultText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="32dp"
+        android:textSize="30dp"
         android:textAlignment="center" />
 
     <LinearLayout
@@ -181,12 +181,27 @@
             android:layout_weight="1" />
     </LinearLayout>
 
-
-    <Button
-        android:id="@+id/clearBtn"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Clear"
-        android:layout_marginHorizontal="2dp" />
+        android:orientation="horizontal"
+        android:weightSum="2">
+        <Button
+            android:id="@+id/clearBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Clear"
+            android:layout_marginHorizontal="2dp"
+            android:layout_weight="1"/>
+
+        <Button
+            android:id="@+id/saveBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Save"
+            android:layout_marginHorizontal="2dp"
+            android:layout_weight="1"/>
+
+    </LinearLayout>
 
 </LinearLayout>

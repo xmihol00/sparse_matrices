@@ -49,7 +49,6 @@ void NNAPI_Mnist32x32_4L::loadToSharedMemory(std::string name, ANeuralNetworksMe
 void NNAPI_Mnist32x32_4L::load(string path)
 {
     _W0 = Dense(path + "/weights_l0.csv", ROW_MAJOR);
-    __android_log_print(ANDROID_LOG_ERROR, "NNAPI_Mnist32x32_4L", "%d %d", _W0.getRows(), _W0.getColumns());
     _W1 = Dense(path + "/weights_l1.csv", ROW_MAJOR);
     _W2 = Dense(path + "/weights_l2.csv", ROW_MAJOR);
     _W3 = Dense(path + "/weights_l3.csv", ROW_MAJOR);

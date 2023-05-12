@@ -29,7 +29,11 @@ namespace Models
 
             Matrix::Dense _input;
             Matrix::Dense _outputSample;
+            Matrix::Dense _tmp1Sample;
+            Matrix::Dense _tmp2Sample;
             Matrix::Dense _outputMatrix;
+            Matrix::Dense _tmp1Matrix;
+            Matrix::Dense _tmp2Matrix;
 
         public:
             Mnist32x32_4L() = default;
@@ -41,9 +45,7 @@ namespace Models
             void predict(Matrix::Dense &input, Matrix::Dense &output);
             Matrix::Dense predict(Matrix::Dense &input);
 
-            void predictOptimized(Matrix::Dense &input, Matrix::Dense &output);
-            Matrix::Dense predictOptimized(Matrix::Dense &input);
-
+            Matrix::Dense predictOptimizedMatrix(Matrix::Dense &input);
             uint8_t predictOptimizedRawSample(float *input);
     };
 
