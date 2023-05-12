@@ -7,6 +7,12 @@ import matplotlib.pyplot as plt
 with open("measurements.json", "r") as file:
     data = json.load(file)
 
+# remove duplicate measurements
+data = [dict(t) for t in {tuple(d.items()) for d in data}]
+
+with open("measurements.json", "w") as file:
+    json.dump(data, file, indent=2)
+
 samples = []
 test_set = []
 sampled_test_set = []
@@ -25,7 +31,7 @@ samples.sort(key=lambda x: x["latency"])
 
 # scatter plot results for test set measurements
 plt.figure(figsize=(14, 6))
-plt.title("Test set measurements")
+plt.title("Test Set Measurements")
 plt.xlabel("Latency (ms)")
 plt.ylabel("Model name")
 plt.scatter([x["latency"] for x in test_set], [x["modelName"] for x in test_set], s=100)
@@ -36,7 +42,7 @@ plt.show()
 
 # scatter plot results for sampled test set measurements
 plt.figure(figsize=(14, 8))
-plt.title("Sampled test set measurements")
+plt.title("Sampled Test Set Measurements")
 plt.xlabel("Latency (ms)")
 plt.ylabel("Model name")
 plt.scatter([x["latency"] for x in sampled_test_set], [x["modelName"] for x in sampled_test_set], s=100)
@@ -45,7 +51,7 @@ plt.tight_layout()
 plt.savefig("plots/sampled_test_set_performance.png", dpi=500)
 plt.show()
 
-groups = [1, 10, 100, 1000, 2500, 5000, 7500]
+groups = [1, 10, 100, 1000, 2500, 5000]
 # split samples into groups
 sample_groups = []
 for group in groups:
@@ -54,11 +60,11 @@ for group in groups:
 # scatter plot results for samples measurements
 for i in range(len(sample_groups)):
     plt.figure(figsize=(14, 8))
-    plt.title("Samples measurements (n = {})".format(groups[i]))
+    plt.title(f"Samples Measurements N = {groups[i]}")
     plt.xlabel("Latency (ms)")
     plt.ylabel("Model name")
     plt.scatter([x["latency"] for x in sample_groups[i]], [x["modelName"] for x in sample_groups[i]], s=100)
     plt.locator_params(axis="x", nbins=24)
     plt.tight_layout()
-    plt.savefig("plots/samples_performance_{}.png".format(groups[i]), dpi=500)
+    plt.savefig(f"plots/samples_performance_{groups[i]}.png", dpi=500)
     plt.show()

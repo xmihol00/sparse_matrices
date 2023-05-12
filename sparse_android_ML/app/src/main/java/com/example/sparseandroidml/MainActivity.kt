@@ -164,6 +164,7 @@ class MainActivity : AppCompatActivity() {
             _measurements.addAll(oldMeasurements)
             val outputStreamWriter = OutputStreamWriter(this.openFileOutput(fileName, Context.MODE_PRIVATE))
             outputStreamWriter.use { it.write(Json.encodeToString(_measurements)) }
+            _measurements.clear()
         }
         catch (e:Exception)
         {
