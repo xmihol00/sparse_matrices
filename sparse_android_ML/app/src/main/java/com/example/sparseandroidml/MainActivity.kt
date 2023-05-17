@@ -201,7 +201,7 @@ class MainActivity : AppCompatActivity() {
         {
             val outFile = File(filesDir, filename)
             
-            if (true) // (!outFile.exists())
+            if (!outFile.exists())
             {
                 try {
                     assetManager.open(filename).use { inputStream ->

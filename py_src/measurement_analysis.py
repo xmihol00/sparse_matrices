@@ -1,16 +1,21 @@
+import argparse
 import json
 import matplotlib.pyplot as plt
 
 # object properties: latency (float), numberOfSamples (int), predictionType (string: SAMPLES, TEST_SET, SAMPLED_TEST_SET), 
 #                    modelName (string)
 
-with open("measurements.json", "r") as file:
+parser = argparse.ArgumentParser()
+parser.add_argument("file_name", nargs='?', type=str, default="measurements.json", help="Name of a file to be analyzed.")
+args = parser.parse_args()
+
+with open(args.file_name, "r") as file:
     data = json.load(file)
 
 # remove duplicate measurements
 data = [dict(t) for t in {tuple(d.items()) for d in data}]
 
-with open("measurements.json", "w") as file:
+with open(args.file_name, "w") as file:
     json.dump(data, file, indent=2)
 
 samples = []

@@ -47,9 +47,7 @@ Java_com_example_sparseandroidml_MainActivity_loadModels(
     modelNNAPI.load(path);
 
     X_test = Dense(path + "/mnist_X_test_T.csv", COLUMN_MAJOR);
-    __android_log_print(ANDROID_LOG_ERROR, "X_test", "rows: %d cols: %d", X_test.getRows(), X_test.getColumns());
     y_test = Dense(path + "/mnist_y_test.csv", COLUMN_MAJOR);
-    __android_log_print(ANDROID_LOG_ERROR, "y_test", "rows: %d cols: %d", y_test.getRows(), y_test.getColumns());
 }
 
 

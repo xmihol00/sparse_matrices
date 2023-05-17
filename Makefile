@@ -4,6 +4,8 @@ CFLAGS = -std=c++20 -Wall -Wextra -Wno-deprecated -Wno-deprecated-declarations -
 NVCCLAGS = --std=c++11 -MMD -g -O3 
 LDFLAGS = -mavx -mfma -L/usr/local/cuda-10.2/lib64/ -lcuda -lcudart -lcublas_static -lcublasLt_static -lculibos
 DEPLOY_DIR = sparse_android_ML/app/src/main/cpp/copied
+ASSETS_DIR = sparse_android_ML/app/src/main/assets
+ML_DIR = sparse_android_ML/app/src/main/ml
 SRC_DIR = cpp_src
 BUILD_DIR = build
 CPP_BUILD_DIR = cpp
@@ -24,7 +26,7 @@ DIR_CUDA_DEPS = $(addprefix $(BUILD_DIR)/$(CUDA_BUILD_DIR)/, $(CUDA_DEPS))
 DEPLOY_FILES = base.h base.cpp dense.h dense.cpp models.h models.cpp enums.h
 COPY_SRC = $(filter-out $(SRC_DIR)/main.cpp, $(CPP_SRC)) $(wildcard $(SRC_DIR)/*.h)
 
-.PHONY: all multi_threaded clean deploy
+.PHONY: all multi_threaded clean deploy unzip
 
 all:
 	$(MAKE) -j8 multi_threaded
@@ -48,6 +50,12 @@ $(BUILD_DIR)/$(CUDA_BUILD_DIR)/%.o: $(SRC_DIR)/%.cu
 
 deploy:
 	$(foreach file, $(COPY_SRC), cp -u $(file) $(DEPLOY_DIR);)
+
+unzip:
+	@mkdir -p $(ASSETS_DIR)
+	@mkdir -p $(ML_DIR)
+	@unzip -o assets.zip -d $(ASSETS_DIR)
+	@unzip -o ml.zip -d $(ML_DIR)
 
 clean:
 	@rm -r $(EXE) $(BUILD_DIR)
