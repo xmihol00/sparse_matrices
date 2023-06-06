@@ -40,8 +40,9 @@ Java_com_example_sparseandroidml_MainActivity_loadModels(
     string path(path_cstr);
     env->ReleaseStringUTFChars(path_jstring, path_cstr);
 
-    model4in16.load(path + "/weights_", path + "/biases_");
-    model2in16.load(path + "/weights_", path + "/biases_");
+    bool metadataFirst = true;
+    model4in16.load(path + "/weights_", path + "/biases_", metadataFirst);
+    model2in16.load(path + "/weights_", path + "/biases_", metadataFirst);
     modelDense.load(path + "/weights_", path + "/biases_");
     modelDenseThreads.load(path + "/weights_", path + "/biases_");
     modelNNAPI.load(path);

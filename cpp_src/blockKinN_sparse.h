@@ -14,6 +14,9 @@ namespace Matrix
         private:
             const uint16_t _compressedDimension;
             const uint16_t _alignedColumns;
+            bool _metadataFirst = false;
+            uint16_t _floatOffset;
+            uint16_t _byteOffset;
 
             void allocateSpaceRowMajorCSV(std::ifstream &file)
             {
@@ -37,7 +40,7 @@ namespace Matrix
             {
                 using namespace std;
 
-                // variables for loading 16 rows at a time
+                // variables for loading N rows at a time
                 string rows[N];
                 stringstream rowStreams[N];
 
@@ -48,13 +51,14 @@ namespace Matrix
                 uint8_t indices[4];
                 for (uint16_t i = 0; i < (_rows + N - 1) / N; i++)
                 {
-                    floatMatrices[0] = _floatMatrix + i * K * (_alignedColumns + _alignedColumns / sizeof(float));
+                    // initialize pointers to the start of each block
+                    floatMatrices[0] = _floatMatrix + i * K * (_alignedColumns + _alignedColumns / sizeof(float)) + _floatOffset;
                     for (uint8_t j = 1; j < K; j++)
                     {
                         floatMatrices[j] = floatMatrices[j - 1] + _alignedColumns + _alignedColumns / sizeof(float);
                     }
 
-                    byteMatrices[0] = _uint8Matrix + i * K * (_alignedColumns * sizeof(float) + _alignedColumns) + 16 * sizeof(float);
+                    byteMatrices[0] = _uint8Matrix + i * K * (_alignedColumns * sizeof(float) + _alignedColumns) + _byteOffset;
                     for (uint8_t j = 1; j < K; j++)
                     {
                         byteMatrices[j] = byteMatrices[j - 1] + _alignedColumns * sizeof(float) + _alignedColumns;
@@ -147,8 +151,8 @@ namespace Matrix
 
                     float *target = targetMatrix._floatMatrix + targetOffset;
                     float *column = operandMatrix._floatMatrix;
-                    float *offsetedRow = _floatMatrix + operandOffset; // TODO
-                    uint8_t *offsetedIndices = _uint8Matrix + (operandOffset + 16) * sizeof(float);
+                    float *offsetedRow = _floatMatrix + operandOffset + _floatOffset;
+                    uint8_t *offsetedIndices = _uint8Matrix + operandOffset * sizeof(float) + _byteOffset;
 
                     if (operandMatrix._dimMajority == COLUMN_MAJOR)
                     {
@@ -207,11 +211,15 @@ namespace Matrix
         public:
             BlockKinNSparse() : Sparse(), _compressedDimension{0}, _alignedColumns{0} {}
 
-            BlockKinNSparse(std::string fileName) : Sparse(denseRows, denseColumns, dimMajority), 
-                                                    _compressedDimension{dimMajority == COLUMN_MAJOR ? 
-                                                                         ((denseColumns + N - 1) / N) * K : 
-                                                                         ((denseRows + N - 1) / N) * K},
-                                                    _alignedColumns{static_cast<uint16_t>(denseColumns + (16 - (denseColumns & 15)) * ((_columns & 15) != 0))}
+            BlockKinNSparse(std::string fileName, bool metadataFirst = false)
+                : Sparse(denseRows, denseColumns, dimMajority), 
+                  _compressedDimension{dimMajority == COLUMN_MAJOR ? 
+                                       ((denseColumns + N - 1) / N) * K : 
+                                       ((denseRows + N - 1) / N) * K},
+                  _alignedColumns{static_cast<uint16_t>(denseColumns + (16 - (denseColumns & 15)) * ((_columns & 15) != 0))},
+                  _metadataFirst{metadataFirst},
+                  _floatOffset{metadataFirst ? static_cast<uint16_t>(16 / sizeof(float)) : static_cast<uint16_t>(0U)},
+                  _byteOffset{metadataFirst ? static_cast<uint16_t>(0U) : static_cast<uint16_t>(16 * sizeof(float))}
             {
                 using namespace std;
 
@@ -221,6 +229,7 @@ namespace Matrix
                 
                 loadCSV(fileName);
             }
+
             ~BlockKinNSparse() = default;
 
             BlockKinNSparse<K, N, denseRows, denseColumns, dimMajority> &operator=(BlockKinNSparse<K, N, denseRows, denseColumns, dimMajority>&& other)
@@ -235,6 +244,8 @@ namespace Matrix
                     _rows = std::move(other._rows);
                     _columns = std::move(other._columns);
                     _dimMajority = std::move(other._dimMajority);
+                    _floatOffset = std::move(other._floatOffset);
+                    _byteOffset = std::move(other._byteOffset);
 
                     other._floatMatrix = nullptr;
                 }
@@ -286,13 +297,13 @@ namespace Matrix
                 float *row[K];
                 for (uint8_t i = 0; i < K; i++)
                 {
-                    row[i] = _floatMatrix + (rowIndex + i) * (_alignedColumns + _alignedColumns / sizeof(float));
+                    row[i] = _floatMatrix + (rowIndex + i) * (_alignedColumns + _alignedColumns / sizeof(float)) + _floatOffset;
                 }
 
                 uint8_t *indices[K];
                 for (uint8_t i = 0; i < K; i++)
                 {
-                    indices[i] = _uint8Matrix + (rowIndex + i) * (_alignedColumns * sizeof(float) + _alignedColumns) + 16 * sizeof(float);
+                    indices[i] = _uint8Matrix + (rowIndex + i) * (_alignedColumns * sizeof(float) + _alignedColumns) + _byteOffset;
                 }
 
                 cout << setprecision(precision) << fixed;
@@ -316,7 +327,7 @@ namespace Matrix
                     for (uint8_t j = 0; j < K; j++)
                     {
                         row[j] += 16 + 16 / sizeof(float);
-                        indices[j] += 16 * sizeof(float) + 16;
+                        indices[j] += 16 + 16 * sizeof(float);
                     }
                 }
 
@@ -412,8 +423,8 @@ namespace Matrix
                     float *dotColumn = dotMatrix._floatMatrix;
                     float *addColumnOffseted = addVector._floatMatrix + N * threadId;
                     float *addColumn = addColumnOffseted;
-                    float *offsetedRow = _floatMatrix + operandOffset;
-                    uint8_t *offsetedIndices = _uint8Matrix + (operandOffset + 16) * sizeof(float);
+                    float *offsetedRow = _floatMatrix + operandOffset + _floatOffset;
+                    uint8_t *offsetedIndices = _uint8Matrix + operandOffset * sizeof(float) + _byteOffset;
 
                     if (dotMatrix._dimMajority == COLUMN_MAJOR && addVector._dimMajority == COLUMN_MAJOR)
                     {
@@ -489,8 +500,8 @@ namespace Matrix
                     {
                         for (uint16_t i = 0; i < dotMatrix._columns / numberOfThreads; i++)
                         {
-                            float *row = _floatMatrix;
-                            uint8_t *indices = _uint8Matrix + 16 * sizeof(float);
+                            float *row = _floatMatrix + _floatOffset;
+                            uint8_t *indices = _uint8Matrix + _byteOffset;
                             
                             for (uint16_t j = 0; j < rowBlocks; j++)
                             {

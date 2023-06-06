@@ -349,14 +349,14 @@ namespace Models
                 }
             }
 
-            void load(std::string weightsFileTemplate, std::string biasesFileTemplate)
+            void load(std::string weightsFileTemplate, std::string biasesFileTemplate, bool metadataFirst = false)
             {
                 using namespace Matrix;
 
-                _W0 = BlockKinNSparse<K, N, 1024, 1024, ROW_MAJOR>{weightsFileTemplate + "l0.csv"};
-                _W1 = BlockKinNSparse<K, N, 1024, 1024, ROW_MAJOR>{weightsFileTemplate + "l1.csv"};
-                _W2 = BlockKinNSparse<K, N, 1024, 1024, ROW_MAJOR>{weightsFileTemplate + "l2.csv"};
-                _W3 = BlockKinNSparse<K, N, 1024, 1024, ROW_MAJOR>{weightsFileTemplate + "l3.csv"};
+                _W0 = BlockKinNSparse<K, N, 1024, 1024, ROW_MAJOR>{weightsFileTemplate + "l0.csv", metadataFirst};
+                _W1 = BlockKinNSparse<K, N, 1024, 1024, ROW_MAJOR>{weightsFileTemplate + "l1.csv", metadataFirst};
+                _W2 = BlockKinNSparse<K, N, 1024, 1024, ROW_MAJOR>{weightsFileTemplate + "l2.csv", metadataFirst};
+                _W3 = BlockKinNSparse<K, N, 1024, 1024, ROW_MAJOR>{weightsFileTemplate + "l3.csv", metadataFirst};
                 _W4 = Dense{weightsFileTemplate + "l4.csv", ROW_MAJOR};
 
                 _B0 = Dense{biasesFileTemplate + "l0.csv", COLUMN_MAJOR};
