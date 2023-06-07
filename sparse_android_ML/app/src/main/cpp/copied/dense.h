@@ -16,7 +16,7 @@ namespace Matrix
     class Dense : public Base
     {
         private:
-            friend class InDataBitmapSparse;
+            friend class BitmapSparse;
             friend class BlockSparse;
             friend class Block4in16Sparse;
             template <uint8_t K, uint8_t N, uint16_t denseRows, uint16_t denseColumns, DimensionMajorityEnum dimMajority>

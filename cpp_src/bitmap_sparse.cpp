@@ -1,9 +1,9 @@
-#include "in_data_bitmap_sparse.h"
+#include "bitmap_sparse.h"
 
 using namespace std;
 using namespace Matrix;
 
-InDataBitmapSparse::InDataBitmapSparse(string fileName, DimensionMajorityEnum dimMajority) : Sparse(dimMajority) 
+BitmapSparse::BitmapSparse(string fileName, DimensionMajorityEnum dimMajority) : Sparse(dimMajority) 
 {
     if (fileName.ends_with(".csv"))
     {
@@ -24,7 +24,7 @@ InDataBitmapSparse::InDataBitmapSparse(string fileName, DimensionMajorityEnum di
     }
 }
 
-void InDataBitmapSparse::allocateSpaceRowMajorCSV(ifstream &file)
+void BitmapSparse::allocateSpaceRowMajorCSV(ifstream &file)
 {
     uint32_t totalEntries = 0;
     uint32_t nonZeroEntries = 0;
@@ -47,14 +47,14 @@ void InDataBitmapSparse::allocateSpaceRowMajorCSV(ifstream &file)
     }
 
     _columns = totalEntries / _rows;
-    _blocksPerDimension = (_columns + _BLOCK_SIZE - 1) / _BLOCK_SIZE;
-    _size = _rows * sizeof(uint32_t) + 
-            _blocksPerDimension * sizeof(uint32_t) * _rows + 
-            nonZeroEntries * sizeof(float);
+    _blocksPerDimension = (_columns + _BLOCK_SIZE - 1) / _BLOCK_SIZE; // ceil the number of blocks
+    _size = _rows * sizeof(uint32_t) +                          // row indices
+            _blocksPerDimension * sizeof(uint32_t) * _rows +    // bitmap blocks
+            nonZeroEntries * sizeof(float);                     // non-zero values (data)
     _byteMatrix = new byte[_size]();
 }
 
-void InDataBitmapSparse::allocateSpaceColumnMajorCSV(ifstream &file)
+void BitmapSparse::allocateSpaceColumnMajorCSV(ifstream &file)
 {
     uint32_t nonZeroEntries = 0;
     string row;
@@ -89,7 +89,7 @@ void InDataBitmapSparse::allocateSpaceColumnMajorCSV(ifstream &file)
     _byteMatrix = new byte[_size]();
 }
 
-void InDataBitmapSparse::loadDataRowMajorCSV(ifstream &file)
+void BitmapSparse::loadDataRowMajorCSV(ifstream &file)
 {
     uint16_t rowIndex = 0;
     uint32_t dataIndex = _rows;
@@ -106,7 +106,7 @@ void InDataBitmapSparse::loadDataRowMajorCSV(ifstream &file)
         {
             blockIndex = dataIndex++;
         }
-        _uint32Matrix[rowIndex++] = dataIndex - 1;
+        _uint32Matrix[rowIndex++] = dataIndex - 1; // starting index of each row in the continuous memory block
 
         stringstream rowStream(row);
         while (getline(rowStream, cell, ','))
@@ -115,13 +115,12 @@ void InDataBitmapSparse::loadDataRowMajorCSV(ifstream &file)
             float cellValue = stof(cell);
             if (cellValue != 0.0f)
             {
-                _floatMatrix[dataIndex] = cellValue;
-                dataIndex++;
-                _uint32Matrix[blockIndex] |= 1 << blockPosition;
+                _floatMatrix[dataIndex++] = cellValue;
+                _uint32Matrix[blockIndex] |= 1 << blockPosition; // set the bit in the bitmap
             }
 
             blockPosition++;
-            if (blockPosition == _BLOCK_SIZE)
+            if (blockPosition == _BLOCK_SIZE) // move to the next bitmap block
             {
                 blockPosition = 0;
                 blockIndex = dataIndex;
@@ -132,7 +131,7 @@ void InDataBitmapSparse::loadDataRowMajorCSV(ifstream &file)
     }
 }
 
-void InDataBitmapSparse::loadDataColumnMajorCSV(ifstream &file)
+void BitmapSparse::loadDataColumnMajorCSV(ifstream &file)
 {
     uint32_t dataIndex = _columns;
     for (uint32_t i = 0; i < _columns; i++)
@@ -179,7 +178,7 @@ void InDataBitmapSparse::loadDataColumnMajorCSV(ifstream &file)
     _buffer = nullptr;
 }
 
-void InDataBitmapSparse::printRow(uint16_t rowIndex, uint8_t precision)
+void BitmapSparse::printRow(uint16_t rowIndex, uint8_t precision)
 {
     Base::printRow(rowIndex);
 
@@ -259,7 +258,7 @@ void InDataBitmapSparse::printRow(uint16_t rowIndex, uint8_t precision)
     }
 }
 
-void InDataBitmapSparse::printColumn(uint16_t columnIndex, uint8_t precision)
+void BitmapSparse::printColumn(uint16_t columnIndex, uint8_t precision)
 {
     Base::printColumn(columnIndex);
 
@@ -324,7 +323,7 @@ void InDataBitmapSparse::printColumn(uint16_t columnIndex, uint8_t precision)
     }
 }
 
-void InDataBitmapSparse::loadBinary(std::string fileName)
+void BitmapSparse::loadBinary(std::string fileName)
 {
     ifstream file(fileName, ios_base::binary);
     if (file.is_open())
@@ -349,12 +348,12 @@ void InDataBitmapSparse::loadBinary(std::string fileName)
     file.close();
 }
 
-void InDataBitmapSparse::saveAsCSV(std::string fileName)
+void BitmapSparse::saveAsCSV(std::string fileName)
 {
     (void)fileName;
 }
 
-void InDataBitmapSparse::saveAsBinary(string fileName)
+void BitmapSparse::saveAsBinary(string fileName)
 {
     ofstream file(fileName, ios_base::binary);
     if (file.is_open())
@@ -370,7 +369,7 @@ void InDataBitmapSparse::saveAsBinary(string fileName)
     file.close();
 }
 
-void InDataBitmapSparse::moveToRow(uint16_t rowIndex)
+void BitmapSparse::moveToRow(uint16_t rowIndex)
 {
     if (_dimMajority == ROW_MAJOR)
     {
@@ -378,7 +377,7 @@ void InDataBitmapSparse::moveToRow(uint16_t rowIndex)
     }
 }
 
-void InDataBitmapSparse::moveToColumn(uint16_t columnIndex)
+void BitmapSparse::moveToColumn(uint16_t columnIndex)
 {
     if (_dimMajority == COLUMN_MAJOR)
     {
@@ -386,7 +385,7 @@ void InDataBitmapSparse::moveToColumn(uint16_t columnIndex)
     }
 }
 
-std::tuple<uint32_t, float *> InDataBitmapSparse::nextRowBlock()
+std::tuple<uint32_t, float *> BitmapSparse::nextRowBlock()
 {
     if (_dimMajority == ROW_MAJOR)
     {
@@ -400,7 +399,7 @@ std::tuple<uint32_t, float *> InDataBitmapSparse::nextRowBlock()
     return {0, nullptr};
 }
 
-std::tuple<uint32_t, float *> InDataBitmapSparse::nextColumnBlock()
+std::tuple<uint32_t, float *> BitmapSparse::nextColumnBlock()
 {
     if (_dimMajority == COLUMN_MAJOR)
     {
@@ -414,7 +413,7 @@ std::tuple<uint32_t, float *> InDataBitmapSparse::nextColumnBlock()
     return {0, nullptr};
 }
 
-void InDataBitmapSparse::dot(InDataBitmapSparse &operandMatrix, Dense &targetMatrix)
+void BitmapSparse::dot(BitmapSparse &operandMatrix, Dense &targetMatrix)
 {
     if (_columns != operandMatrix._rows)
     {
@@ -451,7 +450,7 @@ void InDataBitmapSparse::dot(InDataBitmapSparse &operandMatrix, Dense &targetMat
     targetMatrix._dimMajority = ROW_MAJOR;
 }
 
-Dense InDataBitmapSparse::dot(InDataBitmapSparse &operandMatrix)
+Dense BitmapSparse::dot(BitmapSparse &operandMatrix)
 {
     Dense targetMatrix(_rows, operandMatrix._columns, ROW_MAJOR);
     dot(operandMatrix, targetMatrix);
@@ -459,7 +458,7 @@ Dense InDataBitmapSparse::dot(InDataBitmapSparse &operandMatrix)
     return targetMatrix;
 }
 
-void InDataBitmapSparse::dot(Dense &operandMatrix, Dense &targetMatrix)
+void BitmapSparse::dot(Dense &operandMatrix, Dense &targetMatrix)
 {
     if (_dimMajority == ROW_MAJOR)
     {
@@ -523,7 +522,7 @@ void InDataBitmapSparse::dot(Dense &operandMatrix, Dense &targetMatrix)
     }
 }
 
-Dense InDataBitmapSparse::dot(Dense &operandMatrix)
+Dense BitmapSparse::dot(Dense &operandMatrix)
 {
     Dense targetMatrix(_rows, operandMatrix._columns, COLUMN_MAJOR);
     dot(operandMatrix, targetMatrix);

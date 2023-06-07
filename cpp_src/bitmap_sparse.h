@@ -6,7 +6,7 @@
 
 namespace Matrix
 {
-    class InDataBitmapSparse : public Sparse
+    class BitmapSparse : public Sparse
     {
         private:
             friend class Dense;
@@ -28,8 +28,8 @@ namespace Matrix
             std::tuple<uint32_t, float *> nextColumnBlock();
 
         public:
-            InDataBitmapSparse(std::string fileName, DimensionMajorityEnum dimMajority = FILE_DETERMINED);
-            ~InDataBitmapSparse() = default;
+            BitmapSparse(std::string fileName, DimensionMajorityEnum dimMajority = FILE_DETERMINED);
+            ~BitmapSparse() = default;
 
             void printRow(uint16_t rowIndex, uint8_t precision = 7) override;
             void printColumn(uint16_t columnIndex, uint8_t precision = 7) override;
@@ -37,8 +37,8 @@ namespace Matrix
             void saveAsBinary(std::string fileName) override;
             void saveAsCSV(std::string fileName) override;
 
-            void dot(InDataBitmapSparse &operandMatrix, Dense &targetMatrix);
-            Dense dot(InDataBitmapSparse &operandMatrix);
+            void dot(BitmapSparse &operandMatrix, Dense &targetMatrix);
+            Dense dot(BitmapSparse &operandMatrix);
             void dot(Dense &operandMatrix, Dense &targetMatrix);
             Dense dot(Dense &operandMatrix);
     };
