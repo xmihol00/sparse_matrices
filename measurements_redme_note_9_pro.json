@@ -1,0 +1,728 @@
+[
+  {
+    "latency": 190.17178,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16SparseThreads"
+  },
+  {
+    "latency": 4.811302,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseThreads"
+  },
+  {
+    "latency": 23816.934,
+    "numberOfSamples": 1000,
+    "predictionType": "TEST_SET",
+    "modelName": "4in16Sparse"
+  },
+  {
+    "latency": 4768.4326,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLED_TEST_SET",
+    "modelName": "TFOptimized"
+  },
+  {
+    "latency": 29.645157,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseThreads"
+  },
+  {
+    "latency": 5870.608,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLED_TEST_SET",
+    "modelName": "2in16Sparse"
+  },
+  {
+    "latency": 5687.863,
+    "numberOfSamples": 1000,
+    "predictionType": "TEST_SET",
+    "modelName": "2in16Sparse"
+  },
+  {
+    "latency": 2490.3992,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16Sparse"
+  },
+  {
+    "latency": 132.42323,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "TFQuantized"
+  },
+  {
+    "latency": 15.590417,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "Dense"
+  },
+  {
+    "latency": 23794.082,
+    "numberOfSamples": 1000,
+    "predictionType": "TEST_SET",
+    "modelName": "4in16Sparse"
+  },
+  {
+    "latency": 1.329479,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16Sparse"
+  },
+  {
+    "latency": 61.606094,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16Sparse"
+  },
+  {
+    "latency": 12990.747,
+    "numberOfSamples": 1000,
+    "predictionType": "TEST_SET",
+    "modelName": "Dense"
+  },
+  {
+    "latency": 4.238281,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "TFDefault"
+  },
+  {
+    "latency": 14.300937,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16SparseThreads"
+  },
+  {
+    "latency": 27.424583,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16SparseThreads"
+  },
+  {
+    "latency": 66.89427,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseNNAPI"
+  },
+  {
+    "latency": 2396.1667,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseThreads"
+  },
+  {
+    "latency": 1.302291,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16Sparse"
+  },
+  {
+    "latency": 3.921927,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16Sparse"
+  },
+  {
+    "latency": 10.875782,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16Sparse"
+  },
+  {
+    "latency": 1415.2523,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLES",
+    "modelName": "Dense"
+  },
+  {
+    "latency": 266.59735,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "TFDefault"
+  },
+  {
+    "latency": 28.714533,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseThreads"
+  },
+  {
+    "latency": 2982.5413,
+    "numberOfSamples": 1000,
+    "predictionType": "TEST_SET",
+    "modelName": "DenseNNAPI"
+  },
+  {
+    "latency": 33.30099,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16Sparse"
+  },
+  {
+    "latency": 20.127136,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "Dense"
+  },
+  {
+    "latency": 66.301926,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseNNAPI"
+  },
+  {
+    "latency": 152.09557,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "Dense"
+  },
+  {
+    "latency": 5911.5396,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseNNAPI"
+  },
+  {
+    "latency": 10.005833,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseNNAPI"
+  },
+  {
+    "latency": 4.295521,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16Sparse"
+  },
+  {
+    "latency": 2.192084,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16SparseThreads"
+  },
+  {
+    "latency": 131.01094,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "TFQuantized"
+  },
+  {
+    "latency": 236.67,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16SparseThreads"
+  },
+  {
+    "latency": 7613.446,
+    "numberOfSamples": 1000,
+    "predictionType": "TEST_SET",
+    "modelName": "4in16SparseThreads"
+  },
+  {
+    "latency": 1401.8784,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16SparseThreads"
+  },
+  {
+    "latency": 21189.023,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLED_TEST_SET",
+    "modelName": "4in16SparseThreads"
+  },
+  {
+    "latency": 42.87479,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "TFOptimized"
+  },
+  {
+    "latency": 24873.91,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLED_TEST_SET",
+    "modelName": "4in16Sparse"
+  },
+  {
+    "latency": 51.16172,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "TFOptimized"
+  },
+  {
+    "latency": 27.650831,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16Sparse"
+  },
+  {
+    "latency": 27.483854,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseThreads"
+  },
+  {
+    "latency": 26.236301,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16SparseThreads"
+  },
+  {
+    "latency": 588.0004,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16Sparse"
+  },
+  {
+    "latency": 58960.438,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLED_TEST_SET",
+    "modelName": "DenseNNAPI"
+  },
+  {
+    "latency": 12352.262,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLED_TEST_SET",
+    "modelName": "TFQuantized"
+  },
+  {
+    "latency": 1.283229,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16Sparse"
+  },
+  {
+    "latency": 60.07844,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16Sparse"
+  },
+  {
+    "latency": 4.308802,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16Sparse"
+  },
+  {
+    "latency": 11.594166,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16SparseThreads"
+  },
+  {
+    "latency": 1.265677,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "TFOptimized"
+  },
+  {
+    "latency": 3.867553,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseThreads"
+  },
+  {
+    "latency": 61.35448,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16Sparse"
+  },
+  {
+    "latency": 1238.6804,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLES",
+    "modelName": "TFQuantized"
+  },
+  {
+    "latency": 9.306354,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "TFOptimized"
+  },
+  {
+    "latency": 1.62599,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "TFOptimized"
+  },
+  {
+    "latency": 241.93771,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16SparseThreads"
+  },
+  {
+    "latency": 28.224115,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseThreads"
+  },
+  {
+    "latency": 2.629271,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "TFQuantized"
+  },
+  {
+    "latency": 43.391407,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "TFOptimized"
+  },
+  {
+    "latency": 9.566979,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseNNAPI"
+  },
+  {
+    "latency": 3.54375,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16SparseThreads"
+  },
+  {
+    "latency": 68.0125,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseNNAPI"
+  },
+  {
+    "latency": 31.02724,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "TFDefault"
+  },
+  {
+    "latency": 1.404166,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16Sparse"
+  },
+  {
+    "latency": 7.416406,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16Sparse"
+  },
+  {
+    "latency": 4782.3413,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLED_TEST_SET",
+    "modelName": "TFOptimized"
+  },
+  {
+    "latency": 16.011303,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "TFQuantized"
+  },
+  {
+    "latency": 3.569531,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16SparseThreads"
+  },
+  {
+    "latency": 257.2727,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseThreads"
+  },
+  {
+    "latency": 261.0403,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "TFDefault"
+  },
+  {
+    "latency": 29.069897,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "TFDefault"
+  },
+  {
+    "latency": 2.943698,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16SparseThreads"
+  },
+  {
+    "latency": 3.668334,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "Dense"
+  },
+  {
+    "latency": 255.15416,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16Sparse"
+  },
+  {
+    "latency": 7.651042,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "TFOptimized"
+  },
+  {
+    "latency": 23147.463,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLED_TEST_SET",
+    "modelName": "DenseThreads"
+  },
+  {
+    "latency": 24033.998,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLED_TEST_SET",
+    "modelName": "TFDefault"
+  },
+  {
+    "latency": 148.54047,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "Dense"
+  },
+  {
+    "latency": 4.209323,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "TFDefault"
+  },
+  {
+    "latency": 2538.5852,
+    "numberOfSamples": 1000,
+    "predictionType": "TEST_SET",
+    "modelName": "2in16SparseThreads"
+  },
+  {
+    "latency": 617.60175,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseNNAPI"
+  },
+  {
+    "latency": 17.359896,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "TFQuantized"
+  },
+  {
+    "latency": 379.92334,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLES",
+    "modelName": "TFOptimized"
+  },
+  {
+    "latency": 1.99375,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16SparseThreads"
+  },
+  {
+    "latency": 255.07109,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "TFDefault"
+  },
+  {
+    "latency": 5919.5547,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseNNAPI"
+  },
+  {
+    "latency": 21.929688,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "Dense"
+  },
+  {
+    "latency": 2.933073,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "TFQuantized"
+  },
+  {
+    "latency": 31.62026,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "TFDefault"
+  },
+  {
+    "latency": 2409.4275,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLES",
+    "modelName": "TFDefault"
+  },
+  {
+    "latency": 250.46681,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16Sparse"
+  },
+  {
+    "latency": 8.066146,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "TFOptimized"
+  },
+  {
+    "latency": 2333.9978,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseThreads"
+  },
+  {
+    "latency": 9067.09,
+    "numberOfSamples": 1000,
+    "predictionType": "TEST_SET",
+    "modelName": "DenseThreads"
+  },
+  {
+    "latency": 1390.2273,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLES",
+    "modelName": "Dense"
+  },
+  {
+    "latency": 243.76178,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16SparseThreads"
+  },
+  {
+    "latency": 1.754688,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16SparseThreads"
+  },
+  {
+    "latency": 17.343384,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "TFQuantized"
+  },
+  {
+    "latency": 9.649636,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "TFOptimized"
+  },
+  {
+    "latency": 30.865051,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "TFDefault"
+  },
+  {
+    "latency": 20.246355,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "TFQuantized"
+  },
+  {
+    "latency": 3.335781,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16SparseThreads"
+  },
+  {
+    "latency": 616.9329,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseNNAPI"
+  },
+  {
+    "latency": 182.67026,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16SparseThreads"
+  },
+  {
+    "latency": 2119.9111,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16SparseThreads"
+  },
+  {
+    "latency": 17.608698,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "TFQuantized"
+  },
+  {
+    "latency": 170.88223,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16SparseThreads"
+  },
+  {
+    "latency": 253.2746,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16Sparse"
+  },
+  {
+    "latency": 5.512343,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "4in16Sparse"
+  },
+  {
+    "latency": 13992.102,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLED_TEST_SET",
+    "modelName": "2in16SparseThreads"
+  },
+  {
+    "latency": 370.09152,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLES",
+    "modelName": "TFOptimized"
+  },
+  {
+    "latency": 1.979896,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "Dense"
+  },
+  {
+    "latency": 34.038486,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "TFDefault"
+  },
+  {
+    "latency": 14022.107,
+    "numberOfSamples": 1000,
+    "predictionType": "SAMPLED_TEST_SET",
+    "modelName": "Dense"
+  },
+  {
+    "latency": 130.2061,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "TFQuantized"
+  },
+  {
+    "latency": 10.707396,
+    "numberOfSamples": 10,
+    "predictionType": "SAMPLES",
+    "modelName": "TFOptimized"
+  },
+  {
+    "latency": 1.661146,
+    "numberOfSamples": 1,
+    "predictionType": "SAMPLES",
+    "modelName": "2in16SparseThreads"
+  },
+  {
+    "latency": 283.3036,
+    "numberOfSamples": 100,
+    "predictionType": "SAMPLES",
+    "modelName": "DenseThreads"
+  }
+]

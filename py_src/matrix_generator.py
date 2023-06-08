@@ -8,7 +8,7 @@ array2 = np.random.rand(ROWS, COLUMNS)
 np.savetxt(f"generated_matrices/random.csv", array2, delimiter=',', fmt="%.7f")
 np.savetxt(f"generated_matrices/reference.csv", np.matmul(array1, array2), delimiter=',', fmt="% .7f")
 
-SPARSITY = 13/16
+SPARSITY = 0.25
 ENTRIES = ROWS * COLUMNS
 REMOVED_ENTRIES = int(ENTRIES * SPARSITY)
 

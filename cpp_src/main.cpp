@@ -24,14 +24,20 @@ int main()
 
     if (BLOCK_SPARSE)
     {
+        BlockSparse rowMat025 = BlockSparse("generated_matrices/random_0.25_sparse.csv", 10, ROW_MAJOR);
         BlockSparse rowMat05 = BlockSparse("generated_matrices/random_0.5_sparse.csv", 10, ROW_MAJOR);
         BlockSparse rowMat075 = BlockSparse("generated_matrices/random_0.75_sparse.csv", 10, ROW_MAJOR);
         BlockSparse rowMat08125 = BlockSparse("generated_matrices/random_0.8125_sparse.csv", 10, ROW_MAJOR);
         BlockSparse rowMat0875 = BlockSparse("generated_matrices/random_0.875_sparse.csv", 10, ROW_MAJOR);
         
         auto start = chrono::high_resolution_clock::now();
-        Dense result = rowMat05.dot(colMat);
+        Dense result = rowMat025.dot(colMat);
         auto end = chrono::high_resolution_clock::now();
+        cout << "Block Sparse 0.25 sparsity: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
+
+        start = chrono::high_resolution_clock::now();
+        result = rowMat05.dot(colMat);
+        end = chrono::high_resolution_clock::now();
         cout << "Block Sparse 0.5 sparsity: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
         
         start = chrono::high_resolution_clock::now();
@@ -52,14 +58,20 @@ int main()
 
     if (BITMAP_SPARSE)
     {
+        BitmapSparse rowMat025 = BitmapSparse("generated_matrices/random_0.25_sparse.csv", ROW_MAJOR);
         BitmapSparse rowMat05 = BitmapSparse("generated_matrices/random_0.5_sparse.csv", ROW_MAJOR);
         BitmapSparse rowMat075 = BitmapSparse("generated_matrices/random_0.75_sparse.csv", ROW_MAJOR);
         BitmapSparse rowMat08125 = BitmapSparse("generated_matrices/random_0.8125_sparse.csv", ROW_MAJOR);
         BitmapSparse rowMat0875 = BitmapSparse("generated_matrices/random_0.875_sparse.csv", ROW_MAJOR);
 
         auto start = chrono::high_resolution_clock::now();
-        Dense result = rowMat05.dot(colMat);
+        Dense result = rowMat025.dot(colMat);
         auto end = chrono::high_resolution_clock::now();
+        cout << "Bitmap Sparse 0.25 sparsity: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
+
+        start = chrono::high_resolution_clock::now();
+        result = rowMat05.dot(colMat);
+        end = chrono::high_resolution_clock::now();
         cout << "Bitmap Sparse 0.5 sparsity: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
 
         start = chrono::high_resolution_clock::now();
@@ -80,14 +92,20 @@ int main()
 
     if (KINN_SPARSE)
     {
-        BlockKinNSparse<8, 16, 1024, 1024, ROW_MAJOR> rowMat05("weights/weights_l0.csv", false);
-        BlockKinNSparse<4, 16, 1024, 1024, ROW_MAJOR> rowMat075("weights/weights_l0.csv", false);
-        BlockKinNSparse<3, 16, 1024, 1024, ROW_MAJOR> rowMat08125("weights/weights_l0.csv", false);
-        BlockKinNSparse<2, 16, 1024, 1024, ROW_MAJOR> rowMat0875("weights/weights_l0.csv", false);
+        BlockKinNSparse<3, 4, 1024, 1024, ROW_MAJOR> rowMat025("weights/weights_l0_0.75.csv", false);
+        BlockKinNSparse<2, 4, 1024, 1024, ROW_MAJOR> rowMat05("weights/weights_l0_0.5.csv", false);
+        BlockKinNSparse<1, 4, 1024, 1024, ROW_MAJOR> rowMat075("weights/weights_l0_0.25.csv", false);
+        BlockKinNSparse<3, 16, 1024, 1024, ROW_MAJOR> rowMat08125("weights/weights_l0_0.1875.csv", false);
+        BlockKinNSparse<1, 8, 1024, 1024, ROW_MAJOR> rowMat0875("weights/weights_l0_0.125.csv", false);
 
         auto start = chrono::high_resolution_clock::now();
-        Dense result = rowMat05.dot(colMat);
+        Dense result = rowMat025.dot(colMat);
         auto end = chrono::high_resolution_clock::now();
+        cout << "K in N Sparse 0.25 sparsity: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
+
+        start = chrono::high_resolution_clock::now();
+        result = rowMat05.dot(colMat);
+        end = chrono::high_resolution_clock::now();
         cout << "K in N Sparse 0.5 sparsity: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
 
         start = chrono::high_resolution_clock::now();
