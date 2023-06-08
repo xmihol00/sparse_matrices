@@ -116,7 +116,7 @@ void BlockSparse::loadDataRowMajorCSV(std::ifstream &file)
                     for (; j < _entriesPerBlock; j++)
                     {
                         _dataMatrix[dataIndex++] = 0.0f;
-                        _entryIndices[entriesOffsetsIndex++] = k; // the offset does not metter, as the 0 value indicates padding
+                        _entryIndices[entriesOffsetsIndex++] = k; // the offset does not matter, as the 0 value indicates padding
                     }
                     i++;
 
@@ -130,7 +130,7 @@ void BlockSparse::loadDataRowMajorCSV(std::ifstream &file)
                         for (j = 1; j < _entriesPerBlock; j++)
                         {
                             _dataMatrix[dataIndex++] = 0.0f;
-                            _entryIndices[entriesOffsetsIndex++] = k; // the offset does not metter, as the 0 value indicates padding
+                            _entryIndices[entriesOffsetsIndex++] = k; // the offset does not matter, as the 0 value indicates padding
                         }
                     }
                     break;
@@ -301,3 +301,4 @@ Dense BlockSparse::dot(Dense &operandMatrix)
 
     return targetMatrix;
 }
+

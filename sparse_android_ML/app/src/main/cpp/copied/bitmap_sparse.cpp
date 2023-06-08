@@ -47,10 +47,10 @@ void BitmapSparse::allocateSpaceRowMajorCSV(ifstream &file)
     }
 
     _columns = totalEntries / _rows;
-    _blocksPerDimension = (_columns + _BLOCK_SIZE - 1) / _BLOCK_SIZE;
-    _size = _rows * sizeof(uint32_t) + 
-            _blocksPerDimension * sizeof(uint32_t) * _rows + 
-            nonZeroEntries * sizeof(float);
+    _blocksPerDimension = (_columns + _BLOCK_SIZE - 1) / _BLOCK_SIZE; // ceil the number of blocks
+    _size = _rows * sizeof(uint32_t) +                          // row indices
+            _blocksPerDimension * sizeof(uint32_t) * _rows +    // bitmap blocks
+            nonZeroEntries * sizeof(float);                     // non-zero values (data)
     _byteMatrix = new byte[_size]();
 }
 
@@ -106,7 +106,7 @@ void BitmapSparse::loadDataRowMajorCSV(ifstream &file)
         {
             blockIndex = dataIndex++;
         }
-        _uint32Matrix[rowIndex++] = dataIndex - 1;
+        _uint32Matrix[rowIndex++] = dataIndex - 1; // starting index of each row in the continuous memory block
 
         stringstream rowStream(row);
         while (getline(rowStream, cell, ','))
@@ -115,13 +115,12 @@ void BitmapSparse::loadDataRowMajorCSV(ifstream &file)
             float cellValue = stof(cell);
             if (cellValue != 0.0f)
             {
-                _floatMatrix[dataIndex] = cellValue;
-                dataIndex++;
-                _uint32Matrix[blockIndex] |= 1 << blockPosition;
+                _floatMatrix[dataIndex++] = cellValue;
+                _uint32Matrix[blockIndex] |= 1 << blockPosition; // set the bit in the bitmap
             }
 
             blockPosition++;
-            if (blockPosition == _BLOCK_SIZE)
+            if (blockPosition == _BLOCK_SIZE) // move to the next bitmap block
             {
                 blockPosition = 0;
                 blockIndex = dataIndex;

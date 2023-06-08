@@ -4,7 +4,11 @@
 #include <thread>
 
 #include "sparse.h"
+#if PHONE
+#include <arm_neon.h>
+#else
 #include "arm_neon_.h"
+#endif
 
 namespace Matrix 
 {
