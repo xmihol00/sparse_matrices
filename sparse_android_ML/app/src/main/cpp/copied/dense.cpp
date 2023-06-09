@@ -295,16 +295,16 @@ void Dense::dotNEON(Dense &operandMatrix, Dense &targetMatrix)
         {
             for (uint16_t i = 0; i < operandMatrix._columns; i++)
             {
-                float *column = &operandMatrix._floatMatrix[i * operandMatrix._rows];
-                float *row = _floatMatrix;
+                float *column = operandMatrix._floatMatrix + i * operandMatrix._rows; // move to next column 
+                float *row = _floatMatrix; // reset to first row
                 for (uint16_t j = 0; j < _rows; j++)
                 {
                     float32x4_t accumulator = vdupq_n_f32(0);
-                    for (uint16_t k = 0; k < _columns >> 5; k++)
+                    for (uint16_t k = 0; k < _columns >> 5; k++) // unroll the loop by 32
                     {
                         float32x4_t a = vld1q_f32(row);
                         float32x4_t b = vld1q_f32(column);
-                        accumulator = vmlaq_f32(accumulator, a, b);
+                        accumulator = vmlaq_f32(accumulator, a, b); // fused multiply and add
 
                         a = vld1q_f32(row + 4);
                         b = vld1q_f32(column + 4);
@@ -334,12 +334,14 @@ void Dense::dotNEON(Dense &operandMatrix, Dense &targetMatrix)
                         b = vld1q_f32(column + 28);
                         accumulator = vmlaq_f32(accumulator, a, b);
 
+                        // move to next 32 elements
                         row += 32;
                         column += 32;
                     }
                     
+                    // sum up the accumulator and store the result
                     targetMatrix._floatMatrix[i * _rows + j] = accumulator[0] + accumulator[1] + accumulator[2] + accumulator[3];
-                    column -= _columns;
+                    column -= _columns; // reset the column pointer
                 }
             }
         }
@@ -361,18 +363,20 @@ void Dense::dotNEONThread(Dense &operandMatrix, Dense &targetMatrix, uint8_t num
         if (operandMatrix._dimMajority == COLUMN_MAJOR)
         {
             float *column = operandMatrix._floatMatrix;
-            float *target = targetMatrix._floatMatrix + threadId * targetMatrix._rows / numberOfThreads;
+            float *target = targetMatrix._floatMatrix + threadId * // each thread writes to its own part of the target matrix
+                            targetMatrix._rows / numberOfThreads;
             for (uint16_t i = 0; i < operandMatrix._columns; i++)
             {
-                float *row = _floatMatrix + _columns * threadId * _rows / numberOfThreads;
+                float *row = _floatMatrix + _columns * threadId * // each thread reads from its own part of the operand matrix
+                             _rows / numberOfThreads;
                 for (uint16_t j = 0; j < _rows / numberOfThreads; j++)
                 {
                     float32x4_t accumulator = vdupq_n_f32(0);
-                    for (uint16_t k = 0; k < _columns >> 5; k++)
+                    for (uint16_t k = 0; k < _columns >> 5; k++) // unroll the loop by 32
                     {
                         float32x4_t a = vld1q_f32(row);
                         float32x4_t b = vld1q_f32(column);
-                        accumulator = vmlaq_f32(accumulator, a, b);
+                        accumulator = vmlaq_f32(accumulator, a, b); // fused multiply and accumulate
 
                         a = vld1q_f32(row + 4);
                         b = vld1q_f32(column + 4);
@@ -402,14 +406,17 @@ void Dense::dotNEONThread(Dense &operandMatrix, Dense &targetMatrix, uint8_t num
                         b = vld1q_f32(column + 28);
                         accumulator = vmlaq_f32(accumulator, a, b);
 
+                        // move the pointers to the next 32 elements
                         row += 32;
                         column += 32;
                     }
                     
+                    // sum up the accumulator vector and store the result
                     target[j] = accumulator[0] + accumulator[1] + accumulator[2] + accumulator[3];
-                    column -= _columns;
+                    column -= _columns; // reset the column pointer
                 }
 
+                // move the next column
                 target += targetMatrix._rows;
                 column += operandMatrix._rows;
             }
@@ -447,12 +454,12 @@ void Dense::dotAddActivate(Dense &dotMatrix, Dense &addMatrix, Dense &targetMatr
         {
             for (uint16_t i = 0; i < dotMatrix._columns; i++)
             {
-                float *column = &dotMatrix._floatMatrix[i * dotMatrix._rows];
-                float *row = _floatMatrix;
+                float *column = dotMatrix._floatMatrix + i * dotMatrix._rows; // move to next column
+                float *row = _floatMatrix; // move to first row
                 for (uint16_t j = 0; j < _rows; j++)
                 {
                     float32x4_t accumulator = vdupq_n_f32(0);
-                    for (uint16_t k = 0; k < _columns >> 5; k++)
+                    for (uint16_t k = 0; k < _columns >> 5; k++) // unroll the loop by 32
                     {
                         float32x4_t a = vld1q_f32(row);
                         float32x4_t b = vld1q_f32(column);
@@ -513,9 +520,9 @@ void Dense::dotAddActivateRowThread(Dense &dotMatrix, Dense &addMatrix, Dense &t
 {
     if (_dimMajority == ROW_MAJOR)
     {
-        uint16_t rowsPerThread = (_rows + numberOfThreads - 1) / numberOfThreads;
-        uint16_t startRow = threadId * rowsPerThread;
-        if (startRow >= targetMatrix._rows)
+        uint16_t rowsPerThread = (_rows + numberOfThreads - 1) / numberOfThreads; // ceil(rows / numberOfThreads)
+        uint16_t startRow = threadId * rowsPerThread; // offset into the rows by each thread
+        if (startRow >= targetMatrix._rows) // if the thread is not needed
         {
             return;
         }
@@ -531,7 +538,7 @@ void Dense::dotAddActivateRowThread(Dense &dotMatrix, Dense &addMatrix, Dense &t
                 for (uint16_t j = 0; j < rowsPerThread; j++)
                 {
                     float32x4_t accumulator = vdupq_n_f32(0);
-                    for (uint16_t k = 0; k < _columns >> 5; k++)
+                    for (uint16_t k = 0; k < _columns >> 5; k++) // unroll the loop by 32
                     {
                         float32x4_t a = vld1q_f32(row);
                         float32x4_t b = vld1q_f32(dotColumn);
@@ -569,12 +576,14 @@ void Dense::dotAddActivateRowThread(Dense &dotMatrix, Dense &addMatrix, Dense &t
                         dotColumn += 32;
                     }
                     
+                    // sum the accumulator and add bias
                     float result = accumulator[0] + accumulator[1] + accumulator[2] + accumulator[3] + addColumn[j];
-                    result = activationFunction(result);
+                    result = activationFunction(result); // apply activation function
                     target[j] = result;
-                    dotColumn -= _columns;
+                    dotColumn -= _columns; // reset dotColumn pointer
                 }
 
+                // move pointers to next column
                 target += targetMatrix._rows;
                 dotColumn += dotMatrix._rows;
             }
@@ -586,13 +595,13 @@ void Dense::dotAddActivateRowThreads(Dense &dotMatrix, Dense &addMatrix, Dense &
                                      uint8_t numberOfThreads)
 {
     vector<thread> threads(numberOfThreads);
-    for (uint8_t i = 0; i < numberOfThreads; i++)
+    for (uint8_t i = 0; i < numberOfThreads; i++) // start threads
     {
         threads[i] = thread(&Dense::dotAddActivateRowThread, this, ref(dotMatrix), ref(addMatrix), ref(targetMatrix),
                              activationFunction, numberOfThreads, i);
     }
 
-    for (thread &thread : threads)
+    for (thread &thread : threads) // wait for threads to finish
     {
         thread.join();
     }
@@ -615,20 +624,22 @@ void Dense::dotAddActivateColumnThread(Dense &dotMatrix, Dense &addMatrix, Dense
     {
         if (dotMatrix._dimMajority == COLUMN_MAJOR && addMatrix._dimMajority == COLUMN_MAJOR)
         {
-            float *dotColumn = dotMatrix._floatMatrix + dotMatrix._columns * threadId * dotMatrix._rows / numberOfThreads;
-            float *target = targetMatrix._floatMatrix + targetMatrix._columns * threadId * targetMatrix._rows / numberOfThreads;
-            float *addColumn = addMatrix._floatMatrix;
+            float *dotColumn = dotMatrix._floatMatrix + dotMatrix._columns * // offset by each thread to the dot matrix
+                               threadId * dotMatrix._rows / numberOfThreads;
+            float *target = targetMatrix._floatMatrix + targetMatrix._columns * // offset by each thread to the target matrix
+                            threadId * targetMatrix._rows / numberOfThreads;
+            float *addColumn = addMatrix._floatMatrix; // biases
             for (uint16_t i = 0; i < dotMatrix._columns / numberOfThreads; i++)
             {
                 float *row = _floatMatrix;
                 for (uint16_t j = 0; j < _rows; j++)
                 {
                     float32x4_t accumulator = vdupq_n_f32(0);
-                    for (uint16_t k = 0; k < _columns >> 5; k++)
+                    for (uint16_t k = 0; k < _columns >> 5; k++) // unrolled loop by 32
                     {
                         float32x4_t a = vld1q_f32(row);
                         float32x4_t b = vld1q_f32(dotColumn);
-                        accumulator = vmlaq_f32(accumulator, a, b);
+                        accumulator = vmlaq_f32(accumulator, a, b); // fused multiply accumulate
 
                         a = vld1q_f32(row + 4);
                         b = vld1q_f32(dotColumn + 4);
@@ -658,16 +669,19 @@ void Dense::dotAddActivateColumnThread(Dense &dotMatrix, Dense &addMatrix, Dense
                         b = vld1q_f32(dotColumn + 28);
                         accumulator = vmlaq_f32(accumulator, a, b);
 
+                        // move pointers
                         row += 32;
                         dotColumn += 32;
                     }
                     
-                    float result = accumulator[0] + accumulator[1] + accumulator[2] + accumulator[3] + addColumn[j];
-                    result = activationFunction(result);
+                    // sum up the accumulator vector and add bias
+                    float result = accumulator[0] + accumulator[1] + accumulator[2] + accumulator[3] + addColumn[j];  
+                    result = activationFunction(result); // apply activation function
                     target[j] = result;
-                    dotColumn -= _columns;
+                    dotColumn -= _columns; // reset dotColumn pointer
                 }
 
+                // move to next column
                 target += targetMatrix._rows;
                 dotColumn += dotMatrix._rows;
             }
@@ -825,7 +839,7 @@ float Dense::percentageDifference(Dense &operandMatrix, float threshold)
         {
             if (abs(_floatMatrix[i] - operandMatrix._floatMatrix[i]) <= threshold)
             {
-                sameElements++;
+                sameElements++; // correct prediction
             }
         }
 

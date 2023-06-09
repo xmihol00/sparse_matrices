@@ -165,8 +165,8 @@ N = 8
 
 # train model
 model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
-model.fit(X_train, y_train, epochs=1, batch_size=128, validation_split=0.15, 
-          callbacks=[#tf.keras.callbacks.EarlyStopping(patience=2, restore_best_weights=True, monitor="val_accuracy", mode="max"),
+model.fit(X_train, y_train, epochs=10, batch_size=128, validation_split=0.15, 
+          callbacks=[tf.keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True, monitor="val_accuracy", mode="max"),
                      StructuredColumnSparsityCallback(K, N)])
                      #SegmentSparsePatternCallback(32, 8)])
 
@@ -178,9 +178,8 @@ layers = model.layers
 for i, layer in enumerate(layers):
     if isinstance(layer, tf.keras.layers.Dense):
         weights, biases = layer.get_weights()
-        np.savetxt(f"weights/weights_l{i}_{K / N}.csv", weights.T, delimiter=',', fmt="% .7f")
+        np.savetxt(f"weights/weights_l{i}.csv", weights.T, delimiter=',', fmt="% .7f")
         np.savetxt(f"weights/biases_l{i}.csv", biases, delimiter=',', fmt="% .7f")
-        break
 
 exit()
 

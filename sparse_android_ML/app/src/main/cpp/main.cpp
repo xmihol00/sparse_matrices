@@ -17,6 +17,7 @@ using namespace std;
 using namespace Matrix;
 using namespace Models;
 
+// declaration of the models
 static NNAPI_Mnist32x32_4L modelNNAPI;
 static Mnist32x32_4L modelDense;
 static Mnist32x32_4L_Threads<8> modelDenseThreads;
@@ -41,12 +42,14 @@ Java_com_example_sparseandroidml_MainActivity_loadModels(
     env->ReleaseStringUTFChars(path_jstring, path_cstr);
 
     bool metadataFirst = false;
+    // load the models
     model4in16.load(path + "/weights_", path + "/biases_", metadataFirst);
     model2in16.load(path + "/weights_", path + "/biases_", metadataFirst);
     modelDense.load(path + "/weights_", path + "/biases_");
     modelDenseThreads.load(path + "/weights_", path + "/biases_");
     modelNNAPI.load(path);
 
+    // load MNIST test set
     X_test = Dense(path + "/mnist_X_test_T.csv", COLUMN_MAJOR);
     y_test = Dense(path + "/mnist_y_test.csv", COLUMN_MAJOR);
 }
@@ -55,6 +58,7 @@ Java_com_example_sparseandroidml_MainActivity_loadModels(
 extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_runDenseModel(JNIEnv* env, jobject context, jfloatArray sample)
 {
     float *floatArrayElements = env->GetFloatArrayElements(sample, nullptr);
+    // predict without copying memory
     uint8_t result = modelDense.predictOptimizedRawSample(floatArrayElements);
     env->ReleaseFloatArrayElements(sample, floatArrayElements, 0);
     return static_cast<jint>(result);
@@ -62,6 +66,7 @@ extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_
 
 extern "C" JNIEXPORT jfloat JNICALL Java_com_example_sparseandroidml_MainActivity_runDenseModelTestSet(JNIEnv* env, jobject context)
 {
+    // predict the already loaded test set
     Dense output = modelDense.predictOptimizedMatrix(X_test);
     return output.percentageDifference(y_test);
 }
@@ -69,6 +74,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_com_example_sparseandroidml_MainActivit
 extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_runDenseThreadsSample(JNIEnv* env, jobject context, jfloatArray sample)
 {
     float *floatArrayElements = env->GetFloatArrayElements(sample, nullptr);
+    // predict without copying memory
     uint32_t result = modelDenseThreads.predictRawSample(floatArrayElements);
     env->ReleaseFloatArrayElements(sample, floatArrayElements, 0);
     
@@ -77,6 +83,7 @@ extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_
 
 extern "C" JNIEXPORT jfloat JNICALL  Java_com_example_sparseandroidml_MainActivity_runDenseThreadsTestSet(JNIEnv* env, jobject context)
 {
+    // predict the already loaded test set
     Dense output = modelDenseThreads.predictMatrix(X_test);
     return output.percentageDifference(y_test);
 }
@@ -84,6 +91,7 @@ extern "C" JNIEXPORT jfloat JNICALL  Java_com_example_sparseandroidml_MainActivi
 extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_run4in16model(JNIEnv* env, jobject context, jfloatArray sample)
 {
     float *floatArrayElements = env->GetFloatArrayElements(sample, nullptr);
+    // predict without copying memory
     uint32_t result = model4in16.predictRawSample(floatArrayElements);
     env->ReleaseFloatArrayElements(sample, floatArrayElements, 0);
     return static_cast<jint>(result);
@@ -91,6 +99,7 @@ extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_
 
 extern "C" JNIEXPORT jfloat JNICALL Java_com_example_sparseandroidml_MainActivity_run4in16modelTestSet(JNIEnv* env, jobject context)
 {
+    // predict the already loaded test set
     Dense output = model4in16.predictMatrix(X_test);
     return output.percentageDifference(y_test);
 }
@@ -98,6 +107,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_com_example_sparseandroidml_MainActivit
 extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_run2in16model(JNIEnv* env, jobject context, jfloatArray sample)
 {
     float *floatArrayElements = env->GetFloatArrayElements(sample, nullptr);
+    // predict without copying memory
     uint32_t result = model2in16.predictRawSample(floatArrayElements);
     env->ReleaseFloatArrayElements(sample, floatArrayElements, 0);
     return static_cast<jint>(result);
@@ -105,6 +115,7 @@ extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_
 
 extern "C" JNIEXPORT jfloat JNICALL Java_com_example_sparseandroidml_MainActivity_run2in16modelTestSet(JNIEnv* env, jobject context)
 {
+    // predict the already loaded test set
     Dense output = model2in16.predictMatrix(X_test);
     return output.percentageDifference(y_test);
 }
@@ -112,6 +123,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_com_example_sparseandroidml_MainActivit
 extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_run4in16modelThreads(JNIEnv* env, jobject context, jfloatArray sample)
 {
     float *floatArrayElements = env->GetFloatArrayElements(sample, nullptr);
+    // predict without copying memory
     uint32_t result = model4in16.predictThreadsRawSample(floatArrayElements);
     env->ReleaseFloatArrayElements(sample, floatArrayElements, 0);
     return static_cast<jint>(result);
@@ -119,6 +131,7 @@ extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_
 
 extern "C" JNIEXPORT jfloat JNICALL Java_com_example_sparseandroidml_MainActivity_run4in16modelThreadsTestSet(JNIEnv* env, jobject context)
 {
+    // predict the already loaded test set
     Dense output = model4in16.predictThreadsMatrix(X_test);
     return output.percentageDifference(y_test);
 }
@@ -126,6 +139,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_com_example_sparseandroidml_MainActivit
 extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_run2in16modelThreads(JNIEnv* env, jobject context, jfloatArray sample)
 {
     float *floatArrayElements = env->GetFloatArrayElements(sample, nullptr);
+    // predict without copying memory
     uint32_t result = model2in16.predictThreadsRawSample(floatArrayElements);
     env->ReleaseFloatArrayElements(sample, floatArrayElements, 0);
     return static_cast<jint>(result);
@@ -133,6 +147,7 @@ extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_
 
 extern "C" JNIEXPORT jfloat JNICALL Java_com_example_sparseandroidml_MainActivity_run2in16modelThreadsTestSet(JNIEnv* env, jobject context)
 {
+    // predict the already loaded test set
     Dense output = model2in16.predictThreadsMatrix(X_test);
     return output.percentageDifference(y_test);
 }
@@ -140,6 +155,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_com_example_sparseandroidml_MainActivit
 extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_runDenseModelNNAPI(JNIEnv* env, jobject context, jfloatArray sample)
 {
     float *floatArrayElements = env->GetFloatArrayElements(sample, nullptr);
+    // predict without copying memory
     int result = modelNNAPI.predictSample(floatArrayElements);
     env->ReleaseFloatArrayElements(sample, floatArrayElements, 0);
 
@@ -148,6 +164,7 @@ extern "C" JNIEXPORT jint JNICALL Java_com_example_sparseandroidml_MainActivity_
 
 extern "C" JNIEXPORT jfloat JNICALL Java_com_example_sparseandroidml_MainActivity_runDenseModelNNAPITestSet(JNIEnv* env, jobject context)
 {
+    // predict the already loaded test set
     Dense output = modelNNAPI.predictTestSet(X_test.getData(), 10'000);
     return output.percentageDifference(y_test);
 }

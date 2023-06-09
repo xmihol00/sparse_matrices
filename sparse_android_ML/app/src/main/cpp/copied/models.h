@@ -236,18 +236,21 @@ namespace Models
     class Mnist32x32_4L_KinMSparse
     {
         private:
+            // weights
             Matrix::BlockKinNSparse<K, N, 1024, 1024, Matrix::ROW_MAJOR> _W0;
             Matrix::BlockKinNSparse<K, N, 1024, 1024, Matrix::ROW_MAJOR> _W1;
             Matrix::BlockKinNSparse<K, N, 1024, 1024, Matrix::ROW_MAJOR> _W2;
             Matrix::BlockKinNSparse<K, N, 1024, 1024, Matrix::ROW_MAJOR> _W3;
             Matrix::Dense _W4;
 
+            // biases
             Matrix::Dense _B0;
             Matrix::Dense _B1;
             Matrix::Dense _B2;
             Matrix::Dense _B3;
             Matrix::Dense _B4;
 
+            // pre-allocated temporary results
             Matrix::Dense _input;
             Matrix::Dense _outputSample;
             Matrix::Dense _tmp1Sample;
@@ -256,6 +259,7 @@ namespace Models
             Matrix::Dense _tmp1Matrix;
             Matrix::Dense _tmp2Matrix;
 
+            // thread synchronization
             std::counting_semaphore<numberOfThreads - 1> _semaphore;
             std::barrier<> _barrier;
             std::thread _threads[numberOfThreads - 1];
@@ -266,11 +270,12 @@ namespace Models
             {
                 using namespace Matrix;
 
-                _semaphore.acquire();
+                _semaphore.acquire(); // wait for next sample/matrix
                 while (_run)
                 {
-                    if (_predictRow)
+                    if (_predictRow) // prediction of a single sample
                     {
+                        // parallelism is achieved by splitting the weight matrix, therefore synchronization is needed after each layer
                         _W0.template dotAddActivateRowThread<ReLU>(_input, _B0, _tmp1Sample, numberOfThreads, threadId);
                         _barrier.arrive_and_wait();
 
@@ -286,17 +291,18 @@ namespace Models
                         _W4.dotAddActivateRowThread(_tmp2Sample, _B4, _outputSample, identity, numberOfThreads, threadId);
                         _barrier.arrive_and_wait();
                     }
-                    else
+                    else // prediction of a matrix
                     {
+                        // parallelism is achieved by splitting the input matrix, therefore synchronization is not needed in between layers
                         _W0.template dotAddActivateColumnThread<ReLU>(_input, _B0, _tmp1Matrix, numberOfThreads, threadId);
                         _W1.template dotAddActivateColumnThread<ReLU>(_tmp1Matrix, _B1, _tmp2Matrix, numberOfThreads, threadId);
                         _W2.template dotAddActivateColumnThread<ReLU>(_tmp2Matrix, _B2, _tmp1Matrix, numberOfThreads, threadId);
                         _W3.template dotAddActivateColumnThread<ReLU>(_tmp1Matrix, _B3, _tmp2Matrix, numberOfThreads, threadId);
-                        _W4.dotAddActivateColumnThread(_tmp2Matrix, _B4, _outputMatrix, identity, numberOfThreads, threadId);        
-                        _barrier.arrive_and_wait();
+                        _W4.dotAddActivateColumnThread(_tmp2Matrix, _B4, _outputMatrix, identity, numberOfThreads, threadId);
+                        _barrier.arrive_and_wait(); // synchronization only of the final result
                     }
 
-                    _semaphore.acquire();
+                    _semaphore.acquire(); // wait for next sample/matrix
                 }
             }
 
@@ -304,7 +310,7 @@ namespace Models
             {
                 using namespace std;
 
-                for (uint8_t i = 1; i < numberOfThreads; i++)
+                for (uint8_t i = 1; i < numberOfThreads; i++) // start the threads and keep them waiting on a semaphore, see above
                 {
                     _threads[i - 1] = thread(&Mnist32x32_4L_KinMSparse::predictThread, this, i);
                 }
@@ -317,22 +323,26 @@ namespace Models
             }
 
             Mnist32x32_4L_KinMSparse(std::string weightsFileTemplate, std::string biasesFileTemplate) :
+                // load weights
                 _W0{weightsFileTemplate + "l0.csv"},
                 _W1{weightsFileTemplate + "l1.csv"},
                 _W2{weightsFileTemplate + "l2.csv"},
                 _W3{weightsFileTemplate + "l3.csv"},
                 _W4{weightsFileTemplate + "l4.csv", Matrix::ROW_MAJOR},
+                // load biases
                 _B0{biasesFileTemplate + "l0.csv", Matrix::COLUMN_MAJOR},
                 _B1{biasesFileTemplate + "l1.csv", Matrix::COLUMN_MAJOR},
                 _B2{biasesFileTemplate + "l2.csv", Matrix::COLUMN_MAJOR},
                 _B3{biasesFileTemplate + "l3.csv", Matrix::COLUMN_MAJOR},
                 _B4{biasesFileTemplate + "l4.csv", Matrix::COLUMN_MAJOR},
+                // pre-allocate temporary results
                 _outputSample{10, 1, Matrix::COLUMN_MAJOR},
                 _outputMatrix{10, 10'000, Matrix::COLUMN_MAJOR},
                 _tmp1Sample{1024, 1, Matrix::COLUMN_MAJOR},
                 _tmp2Sample{1024, 1, Matrix::COLUMN_MAJOR},
                 _tmp1Matrix{1024, 10'000, Matrix::COLUMN_MAJOR},
                 _tmp2Matrix{1024, 10'000, Matrix::COLUMN_MAJOR},
+                // thread synchronization
                 _semaphore(0), _barrier(numberOfThreads), _run(true), _predictRow(true)
             { 
                 startThreads();
@@ -340,10 +350,10 @@ namespace Models
 
             ~Mnist32x32_4L_KinMSparse()
             {
-                _input.clear();
-                _run = false;
-                _semaphore.release(numberOfThreads - 1);
-                for (uint8_t i = 0; i < numberOfThreads - 1; i++)
+                _input.clear(); // ensure not allocated memory is not freed by the destructor
+                _run = false;   // stop the threads
+                _semaphore.release(numberOfThreads - 1); // wake up the threads and allow them to finish
+                for (uint8_t i = 0; i < numberOfThreads - 1; i++) // wait for the threads to finish
                 {
                     _threads[i].join();
                 }
@@ -353,18 +363,21 @@ namespace Models
             {
                 using namespace Matrix;
 
+                // load weights
                 _W0 = BlockKinNSparse<K, N, 1024, 1024, ROW_MAJOR>{weightsFileTemplate + "l0.csv", metadataFirst};
                 _W1 = BlockKinNSparse<K, N, 1024, 1024, ROW_MAJOR>{weightsFileTemplate + "l1.csv", metadataFirst};
                 _W2 = BlockKinNSparse<K, N, 1024, 1024, ROW_MAJOR>{weightsFileTemplate + "l2.csv", metadataFirst};
                 _W3 = BlockKinNSparse<K, N, 1024, 1024, ROW_MAJOR>{weightsFileTemplate + "l3.csv", metadataFirst};
                 _W4 = Dense{weightsFileTemplate + "l4.csv", ROW_MAJOR};
 
+                // load biases
                 _B0 = Dense{biasesFileTemplate + "l0.csv", COLUMN_MAJOR};
                 _B1 = Dense{biasesFileTemplate + "l1.csv", COLUMN_MAJOR};
                 _B2 = Dense{biasesFileTemplate + "l2.csv", COLUMN_MAJOR};
                 _B3 = Dense{biasesFileTemplate + "l3.csv", COLUMN_MAJOR};
                 _B4 = Dense{biasesFileTemplate + "l4.csv", COLUMN_MAJOR};
 
+                // pre-allocate temporary results
                 _outputSample = Dense{10, 1, COLUMN_MAJOR};
                 _outputMatrix = Dense{10, 10'000, COLUMN_MAJOR};
                 _tmp1Sample = Dense{1024, 1, COLUMN_MAJOR};
@@ -377,22 +390,24 @@ namespace Models
             {
                 using namespace Matrix;
 
-                _input.setFloatMatrix(input, 1024, 1, COLUMN_MAJOR);
+                // single threaded prediction
+                _input.setFloatMatrix(input, 1024, 1, COLUMN_MAJOR); // memory is not copied, only the pointer is stored
                 _W0.template dotAddActivateRowThread<ReLU>(_input, _B0, _tmp1Sample);
                 _W1.template dotAddActivateRowThread<ReLU>(_tmp1Sample, _B1, _tmp2Sample);
                 _W2.template dotAddActivateRowThread<ReLU>(_tmp2Sample, _B2,_tmp1Sample);
                 _W3.template dotAddActivateRowThread<ReLU>(_tmp1Sample, _B3, _tmp2Sample);
 
-                _W4.dot(_tmp2Sample, _outputSample);
+                _W4.dot(_tmp2Sample, _outputSample); // last layer is dense and does not need activation
                 _outputSample.add(_B4);
 
-                return _outputSample.argmax();
+                return _outputSample.argmax(); // softmax is not needed, argmax is enough
             }
 
             Matrix::Dense predictMatrix(Matrix::Dense input)
             {
                 using namespace Matrix;
 
+                // single threaded prediction of a matrix
                 _W0.template dotAddActivateRowThread<ReLU>(input, _B0, _tmp1Matrix);
                 _W1.template dotAddActivateRowThread<ReLU>(_tmp1Matrix, _B1, _tmp2Matrix);
                 _W2.template dotAddActivateRowThread<ReLU>(_tmp2Matrix, _B2,_tmp1Matrix);
@@ -401,7 +416,7 @@ namespace Models
                 _W4.dot(_tmp2Matrix, _outputMatrix);
                 _outputMatrix.add(_B4);
 
-                return _outputMatrix.argmax(0);
+                return _outputMatrix.argmax(0); // argmax along axis 0
             }
 
             uint8_t predictThreadsRawSample(float *input)
@@ -409,9 +424,10 @@ namespace Models
                 using namespace Matrix;
 
                 _predictRow = true;
-                _input.setFloatMatrix(input, 1024, 1, COLUMN_MAJOR);
-                _semaphore.release(numberOfThreads - 1);
+                _input.setFloatMatrix(input, 1024, 1, COLUMN_MAJOR); // memory is not copied, only the pointer is stored
+                _semaphore.release(numberOfThreads - 1); // wake up the threads to start computation
                 
+                // this thread is also used for computation
                 _W0.template dotAddActivateRowThread<ReLU>(_input, _B0, _tmp1Sample, numberOfThreads, 0);
                 _barrier.arrive_and_wait();
 
@@ -435,18 +451,19 @@ namespace Models
                 using namespace Matrix;
 
                 _predictRow = false;
-                _input.setFloatMatrix(input.getData(), input.getRows(), input.getColumns(), COLUMN_MAJOR);
-                _semaphore.release(numberOfThreads - 1);
+                _input.setFloatMatrix(input.getData(), input.getRows(), input.getColumns(), COLUMN_MAJOR); // memory is not copied, only the pointer is stored
+                _semaphore.release(numberOfThreads - 1); // wake up the threads to start computation
 
+                // this thread is also used for computation
                 _W0.template dotAddActivateColumnThread<ReLU>(_input, _B0, _tmp1Matrix, numberOfThreads, 0);
                 _W1.template dotAddActivateColumnThread<ReLU>(_tmp1Matrix, _B1, _tmp2Matrix, numberOfThreads, 0);
                 _W2.template dotAddActivateColumnThread<ReLU>(_tmp2Matrix, _B2, _tmp1Matrix, numberOfThreads, 0);
                 _W3.template dotAddActivateColumnThread<ReLU>(_tmp1Matrix, _B3, _tmp2Matrix, numberOfThreads, 0);
                 _W4.dotAddActivateColumnThread(_tmp2Matrix, _B4, _outputMatrix, identity, numberOfThreads, 0);
 
-                _barrier.arrive_and_wait();
+                _barrier.arrive_and_wait(); // synchronize the results
 
-                return _outputMatrix.argmax(0);
+                return _outputMatrix.argmax(0); // argmax along axis 0
             }
     };
 }

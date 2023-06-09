@@ -12,27 +12,29 @@ namespace Matrix
     class BlockKinNSparse : public Sparse
     {
         private:
-            const uint16_t _compressedDimension;
-            const uint16_t _alignedColumns;
+            const uint16_t _compressedDimension; // number of rows/columns in the compressed matrix
+            const uint16_t _alignedColumns;      // columns padded to multiple of 16
             bool _metadataFirst = false;
-            uint16_t _floatOffset;
-            uint16_t _byteOffset;
+            uint16_t _floatOffset; // zero when _metadataFirst is false
+            uint16_t _byteOffset;  // zero when _metadataFirst is true
 
             void allocateSpaceRowMajorCSV(std::ifstream &file)
             {
-                (void)file;
+                (void)file; // suppress unused parameter warning, no need to read the file
                 using namespace std;
 
-                _size = (_columns + (16 - (_columns & 15)) * ((_columns & 15) != 0)) * _compressedDimension * (sizeof(float) + sizeof(uint8_t));
+                _size = (_columns + (16 - (_columns & 15)) * ((_columns & 15) != 0)) * // pad columns to multiple of 16
+                        _compressedDimension * (sizeof(float) + sizeof(uint8_t));
                 _byteMatrix = new(align_val_t{16}) byte[_size](); // allocate aligned memory to 16 bytes to allow AVX/NEON instructions
             }
 
             void allocateSpaceColumnMajorCSV(std::ifstream &file)
             {
-                (void)file;
+                (void)file; // suppress unused parameter warning, no need to read the file
                 using namespace std;
 
-                _size = (_rows + (16 - (_rows & 15)) * ((_rows & 15) != 0)) * _compressedDimension * (sizeof(float) + sizeof(uint8_t));
+                _size = (_rows + (16 - (_rows & 15)) * ((_rows & 15) != 0)) * // pad rows to multiple of 16
+                        _compressedDimension * (sizeof(float) + sizeof(uint8_t));
                 _byteMatrix = new(align_val_t{16}) byte[_size](); // allocate aligned memory to 16 bytes to allow AVX/NEON instructions
             }
 
@@ -44,6 +46,7 @@ namespace Matrix
                 string rows[N];
                 stringstream rowStreams[N];
 
+                // pointers to the start of each block in contiguous memory
                 float *floatMatrices[K];
                 uint8_t *byteMatrices[K];
 
@@ -53,24 +56,23 @@ namespace Matrix
                 {
                     // initialize pointers to the start of each block
                     floatMatrices[0] = _floatMatrix + i * K * (_alignedColumns + _alignedColumns / sizeof(float)) + _floatOffset;
-                    for (uint8_t j = 1; j < K; j++)
+                    for (uint8_t j = 1; j < K; j++) // add offsets from the starting address
                     {
                         floatMatrices[j] = floatMatrices[j - 1] + _alignedColumns + _alignedColumns / sizeof(float);
                     }
-
-                    byteMatrices[0] = _uint8Matrix + i * K * (_alignedColumns * sizeof(float) + _alignedColumns) + _byteOffset;
-                    for (uint8_t j = 1; j < K; j++)
+                    byteMatrices[0] = _uint8Matrix + i * K * (_alignedColumns + _alignedColumns * sizeof(float)) + _byteOffset;
+                    for (uint8_t j = 1; j < K; j++) // add offsets from the starting address
                     {
-                        byteMatrices[j] = byteMatrices[j - 1] + _alignedColumns * sizeof(float) + _alignedColumns;
+                        byteMatrices[j] = byteMatrices[j - 1] + _alignedColumns + _alignedColumns * sizeof(float);
                     }
 
                     uint8_t row = 0;
-                    while (row < N && getline(file, rows[row]))
+                    while (row < N && getline(file, rows[row])) // read N rows
                     {
                         row++;
                     }
 
-                    for ( ; row < N; row++) // pad with empty rows
+                    for ( ; row < N; row++) // pad with empty rows at the end of the matrix if necessary
                     {
                         rows[row] = "";
                     }
@@ -80,13 +82,13 @@ namespace Matrix
                         rowStreams[j] = stringstream(rows[j]);
                     }
 
-                    for (uint16_t j = 0; j < _columns >> 2; j++)
+                    for (uint16_t j = 0; j < _columns >> 2; j++) // process columns in batches of 4
                     {
-                        for (uint8_t k = 0; k < 4; k++)
+                        for (uint8_t k = 0; k < 4; k++) // reset indices
                         {
                             indices[k] = 0;
                         }
-
+                        
                         for (uint8_t k = 0; k < N; k++)
                         {
                             for (uint8_t l = 0; l < 4; l++)
@@ -94,7 +96,7 @@ namespace Matrix
                                 if (getline(rowStreams[k], cell, ','))
                                 {
                                     float value = stof(cell);
-                                    if (value != 0.0f)
+                                    if (value != 0.0f) // load non-zero values
                                     {
                                         if (indices[l] >= K)
                                         {
@@ -109,15 +111,15 @@ namespace Matrix
                             }
                         }
 
-                        for (uint8_t k = 0; k < K; k++)
+                        for (uint8_t k = 0; k < K; k++) // increment pointers
                         {
                             floatMatrices[k] += 4;
                             byteMatrices[k] += 4;
                         }
-
-                        if ((j & 3) == 3)
+                        
+                        if ((j & 3) == 3) // modulo 4
                         {
-                            for (uint8_t k = 0; k < K; k++)
+                            for (uint8_t k = 0; k < K; k++) // skip indices in case of float pointers and skip non-zero values in case of byte pointers
                             {
                                 floatMatrices[k] += 16 / sizeof(float);
                                 byteMatrices[k] += 16 * sizeof(float);
@@ -143,11 +145,13 @@ namespace Matrix
 
                 if (_dimMajority == ROW_MAJOR)
                 {
-                    const uint16_t rowBlocks = _compressedDimension / K / numberOfThreads;
-                    const uint32_t operandOffset = _compressedDimension / numberOfThreads * (_columns + _columns / sizeof(float)) * threadId;
-                    const uint16_t targetOffset = targetMatrix._rows / numberOfThreads * threadId;
-                    const int16_t targetPadding = denseRows - _compressedDimension / K * N + targetMatrix._rows - targetMatrix._rows / numberOfThreads;
-                    const uint16_t columnBlocks = denseColumns >> 4;
+                    const uint16_t rowBlocks = _compressedDimension / K / numberOfThreads; // number of rows processed by each thread
+                    const uint32_t operandOffset = _compressedDimension / numberOfThreads * // offset of each thread in the first operand matrix
+                                                   (_columns + _columns / sizeof(float)) * threadId;
+                    const uint16_t targetOffset = targetMatrix._rows / numberOfThreads * threadId; // offset of each thread in the target matrix
+                    const int16_t targetShift = denseRows - _compressedDimension / K * N + // target matrix pointer shift after each iteration
+                                                targetMatrix._rows - targetMatrix._rows / numberOfThreads;
+                    const uint16_t columnBlocks = denseColumns >> 4; // number of column blocks in the dense matrix
 
                     float *target = targetMatrix._floatMatrix + targetOffset;
                     float *column = operandMatrix._floatMatrix;
@@ -156,20 +160,20 @@ namespace Matrix
 
                     if (operandMatrix._dimMajority == COLUMN_MAJOR)
                     {
-                        for (uint16_t i = 0; i < operandMatrix._columns; i++)
+                        for (uint16_t i = 0; i < operandMatrix._columns; i++) // all columns of 2nd operand matrix
                         {
                             float *row = offsetedRow;
                             uint8_t *indices = offsetedIndices;
                             
-                            for (uint16_t j = 0; j < rowBlocks; j++)
+                            for (uint16_t j = 0; j < rowBlocks; j++) // all rowBlock of a given thread
                             {
-                                for (uint8_t k = 0; k < K; k++)
+                                for (uint8_t k = 0; k < K; k++) // row block has K rows
                                 {
                                     #pragma GCC unroll 16
-                                    for (uint16_t l = 0; l < columnBlocks; l++)
+                                    for (uint16_t l = 0; l < columnBlocks; l++) // column block are batches of 16 non-zero values
                                     {
                                         #pragma GCC unroll 4
-                                        for (uint8_t m = 0; m < 4; m++)
+                                        for (uint8_t m = 0; m < 4; m++) // use of 4 floats SIMD instructions
                                         {
                                             float32x4_t a = vld1q_f32(row);
                                             float32x4_t b = vld1q_f32(column);
@@ -178,31 +182,32 @@ namespace Matrix
                                             #pragma GCC unroll 4
                                             for (uint8_t n = 0; n < 4; n++)
                                             {
-                                                accumulators[indices[n]] += a[n];
+                                                accumulators[indices[n]] += a[n]; // store values to 1 of N accumulators
                                             }
 
+                                            // move pointers
                                             row += 4;
                                             indices += 4;
                                             column += 4;
                                         }
 
-                                        row += 16 / sizeof(float);
-                                        indices += 16 * sizeof(float);
+                                        row += 16 / sizeof(float);     // skip indices
+                                        indices += 16 * sizeof(float); // skip non-zero values
                                     }
-                                    column -= operandMatrix._rows;
+                                    column -= operandMatrix._rows; // reset column pointer, so the column is processed by all rows in the block
                                 }
 
                                 #pragma GCC ivdep
-                                for (uint8_t k = 0; k < N; k++)
+                                for (uint8_t k = 0; k < N; k++) // store N results to the target matrix
                                 {
                                     target[k] = accumulators[k];
                                     accumulators[k] = 0.0f;
                                 }
-                                target += N;
+                                target += N; // move pointer
                             }
                             
-                            target += targetPadding;
-                            column += operandMatrix._rows;
+                            target += targetShift;         // move target pointer to the next area computed by the same thread
+                            column += operandMatrix._rows; // move column pointer to the next column
                         }
                     }
                 }
@@ -214,8 +219,8 @@ namespace Matrix
             BlockKinNSparse(std::string fileName, bool metadataFirst = false)
                 : Sparse(denseRows, denseColumns, dimMajority), 
                   _compressedDimension{dimMajority == COLUMN_MAJOR ? 
-                                       ((denseColumns + N - 1) / N) * K : 
-                                       ((denseRows + N - 1) / N) * K},
+                                       ((denseColumns + N - 1) / N) * K : // ceil(denseColumns / N) * K
+                                       ((denseRows + N - 1) / N) * K},    // ceil(denseRows / N) * K
                   _alignedColumns{static_cast<uint16_t>(denseColumns + (16 - (denseColumns & 15)) * ((_columns & 15) != 0))},
                   _metadataFirst{metadataFirst},
                   _floatOffset{metadataFirst ? static_cast<uint16_t>(16 / sizeof(float)) : static_cast<uint16_t>(0U)},
@@ -262,7 +267,7 @@ namespace Matrix
 
                     cout << setprecision(precision) << fixed;
                     uint16_t j = 0;
-                    for ( ; j < (_alignedColumns >> 4) - 1; j++)
+                    for ( ; j < (_alignedColumns >> 4) - 1; j++) // all block apart from the last one
                     {
                         for (uint8_t k = 0; k < 16; k++)
                         {
@@ -272,11 +277,11 @@ namespace Matrix
                     }
 
                     uint8_t l = 0;
-                    for (uint16_t k = j << 4; k < _columns - 1; k++, l++)
+                    for (uint16_t k = j << 4; k < _columns - 1; k++, l++) // all values in the last block apart from the last one
                     {
                         cout << setw(precision + 3) << row[l] << ",";
                     }
-                    cout << setw(precision + 3) << row[l] << endl;
+                    cout << setw(precision + 3) << row[l] << endl; // last value in the last block
                 }
             }
 
@@ -291,15 +296,16 @@ namespace Matrix
                 using namespace std;
 
                 uint8_t blockIndex = rowIndex % N;
+                // adjust the index to the compressed matrix
                 rowIndex /= N;
                 rowIndex *= K;
-
+                
+                // the requested row can have values in a whole block, load pointer to rows of the block
                 float *row[K];
                 for (uint8_t i = 0; i < K; i++)
                 {
                     row[i] = _floatMatrix + (rowIndex + i) * (_alignedColumns + _alignedColumns / sizeof(float)) + _floatOffset;
                 }
-
                 uint8_t *indices[K];
                 for (uint8_t i = 0; i < K; i++)
                 {
@@ -315,23 +321,23 @@ namespace Matrix
                         {
                             if (indices[k][j] == blockIndex)
                             {
-                                cout << setw(precision + 3) << row[k][j] << ",";
+                                cout << setw(precision + 3) << row[k][j] << ","; 
                                 goto printed1;
                             }
                         }
-                        cout << setw(precision + 3) << 0.0f << ",";
+                        cout << setw(precision + 3) << 0.0f << ","; // value was not found, therefore it is 0
                     printed1:
                         continue;
                     }
 
-                    for (uint8_t j = 0; j < K; j++)
+                    for (uint8_t j = 0; j < K; j++) // move pointers to the next block of column of the block of rows
                     {
-                        row[j] += 16 + 16 / sizeof(float);
-                        indices[j] += 16 + 16 * sizeof(float);
+                        row[j] += 16 + 16 / sizeof(float);     // skip indices
+                        indices[j] += 16 + 16 * sizeof(float); // skip non-zero values
                     }
                 }
 
-                uint8_t lastIndex = (_columns & 15) + 16 * ((_columns & 15) == 0) - 1;
+                uint8_t lastIndex = (_columns & 15) + 16 * ((_columns & 15) == 0) - 1; // last index of a column block
                 for (uint8_t j = 0; j < lastIndex; j++)
                 {
                     for (uint8_t k = 0; k < K; k++)
@@ -342,12 +348,12 @@ namespace Matrix
                             goto printed2;
                         }
                     }
-                    cout << setw(precision + 3) << 0.0f << ",";
+                    cout << setw(precision + 3) << 0.0f << ","; // value was not found, therefore it is 0
                 printed2:
                     continue;
                 }
 
-                for (uint8_t k = 0; k < K; k++)
+                for (uint8_t k = 0; k < K; k++) // last value in the column block
                 {
                     if (indices[k][lastIndex] == blockIndex)
                     {
@@ -387,12 +393,12 @@ namespace Matrix
                 
                 const uint8_t numThreads = 8;
                 thread threads[numThreads];
-                for (uint8_t i = 0; i < numThreads; i++)
+                for (uint8_t i = 0; i < numThreads; i++) // spawn 8 threads
                 {
                     threads[i] = thread(&BlockKinNSparse::dotPart, this, ref(operandMatrix), ref(targetMatrix), numThreads, i);
                 }
 
-                for (uint8_t i = 0; i < numThreads; i++)
+                for (uint8_t i = 0; i < numThreads; i++) // wait for all threads to finish
                 {
                     threads[i].join();
                 }
@@ -416,7 +422,7 @@ namespace Matrix
                     const uint16_t rowBlocks = _compressedDimension / K / numberOfThreads;
                     const uint32_t operandOffset = _compressedDimension / numberOfThreads * (_columns + _columns / sizeof(float)) * threadId;
                     const uint16_t targetOffset = targetMatrix._rows / numberOfThreads * threadId;
-                    const int16_t targetPadding = denseRows - _compressedDimension / K * N + targetMatrix._rows - targetMatrix._rows / numberOfThreads;
+                    const int16_t targetShift = denseRows - _compressedDimension / K * N + targetMatrix._rows - targetMatrix._rows / numberOfThreads;
                     const uint16_t columnBlocks = denseColumns >> 4;
 
                     float *target = targetMatrix._floatMatrix + targetOffset;
@@ -475,7 +481,7 @@ namespace Matrix
                             }
 
                             addColumn = addColumnOffseted;
-                            target += targetPadding;
+                            target += targetShift;
                             dotColumn += dotMatrix._rows;
                         }
                     }
@@ -489,29 +495,32 @@ namespace Matrix
 
                 if (_dimMajority == ROW_MAJOR)
                 {
-                    const uint16_t rowBlocks = _compressedDimension / K;
-                    const uint16_t columnBlocks = denseColumns >> 4;
+                    const uint16_t rowBlocks = _compressedDimension / K; // each thread computes all rows
+                    const uint16_t columnBlocks = denseColumns >> 4; // number of block of 16 columns     
 
-                    float *dotColumn = dotMatrix._floatMatrix + dotMatrix._columns * threadId * dotMatrix._rows / numberOfThreads;
-                    float *target = targetMatrix._floatMatrix + targetMatrix._columns * threadId * targetMatrix._rows / numberOfThreads;
-                    float *addColumn = addVector._floatMatrix;
+                    float *dotColumn = dotMatrix._floatMatrix + dotMatrix._columns * // each thread computes part of the columns
+                                       threadId * dotMatrix._rows / numberOfThreads;
+                    float *target = targetMatrix._floatMatrix + targetMatrix._columns * // same offset as with columns
+                                    threadId * targetMatrix._rows / numberOfThreads;
+                    float *addColumn = addVector._floatMatrix; // biases
 
                     if (dotMatrix._dimMajority == COLUMN_MAJOR && addVector._dimMajority == COLUMN_MAJOR)
                     {
-                        for (uint16_t i = 0; i < dotMatrix._columns / numberOfThreads; i++)
+                        for (uint16_t i = 0; i < dotMatrix._columns / numberOfThreads; i++) // compute columns assigned to a thread
                         {
+                            // correct offsets based of the location on metadata
                             float *row = _floatMatrix + _floatOffset;
                             uint8_t *indices = _uint8Matrix + _byteOffset;
                             
-                            for (uint16_t j = 0; j < rowBlocks; j++)
+                            for (uint16_t j = 0; j < rowBlocks; j++) // all rows of the 1st operand matrix
                             {
-                                for (uint8_t k = 0; k < K; k++)
+                                for (uint8_t k = 0; k < K; k++) // all rows of a block of rows
                                 {
                                     #pragma GCC unroll 16
-                                    for (uint16_t l = 0; l < columnBlocks; l++)
+                                    for (uint16_t l = 0; l < columnBlocks; l++) // all column blocks
                                     {
                                         #pragma GCC unroll 4
-                                        for (uint8_t m = 0; m < 4; m++)
+                                        for (uint8_t m = 0; m < 4; m++) // batches in one column block
                                         {
                                             float32x4_t a = vld1q_f32(row);
                                             float32x4_t b = vld1q_f32(dotColumn);
@@ -520,30 +529,34 @@ namespace Matrix
                                             #pragma GCC unroll 4
                                             for (uint8_t n = 0; n < 4; n++)
                                             {
-                                                accumulators[indices[n]] += a[n];
+                                                accumulators[indices[n]] += a[n]; // store value to 1 of N accumulators
                                             }                                        
 
+                                            // move pointers
                                             row += 4;
                                             indices += 4;
                                             dotColumn += 4;
                                         }
 
-                                        row += 16 / sizeof(float);
-                                        indices += 16 * sizeof(float);
+                                        row += 16 / sizeof(float);      // skip indices
+                                        indices += 16 * sizeof(float);  // skip non-zero values
                                     }
-                                    dotColumn -= dotMatrix._rows;
+                                    dotColumn -= dotMatrix._rows; // reset column pointer, so the column is processed by all rows in the block
                                 }
 
                                 #pragma GCC ivdep
                                 for (uint8_t k = 0; k < N; k++)
                                 {
-                                    target[k] = activationFunction(accumulators[k] + addColumn[k]);
-                                    accumulators[k] = 0.0f;
+                                    target[k] = activationFunction(accumulators[k] + addColumn[k]); // add bias and apply activation function
+                                    accumulators[k] = 0.0f; // reset accumulators
                                 }
+
+                                // move pointers
                                 target += N;
                                 addColumn += N;
                             }
 
+                            // got to next column
                             addColumn = addVector._floatMatrix;
                             dotColumn += dotMatrix._rows;
                         }

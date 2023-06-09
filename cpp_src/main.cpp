@@ -14,9 +14,9 @@ using namespace std;
 using namespace Matrix;
 using namespace Models;
 
-constexpr bool BLOCK_SPARSE = true;
-constexpr bool BITMAP_SPARSE = true;
-constexpr bool KINN_SPARSE = true;
+constexpr bool BLOCK_SPARSE = false;
+constexpr bool BITMAP_SPARSE = false;
+constexpr bool KINN_SPARSE = false;
 
 int main()
 {   
@@ -124,7 +124,7 @@ int main()
         cout << "K in N Sparse 0.875 sparsity: " << chrono::duration<double, milli>(end - start).count() << " ms" << endl;
     }
 
-#define NETWORK_TEST 0
+#define NETWORK_TEST 1
 #if NETWORK_TEST
     Dense groundTruth("datasets/mnist_y_test.csv", COLUMN_MAJOR);
 
