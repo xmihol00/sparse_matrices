@@ -1,5 +1,5 @@
 # Sparse Matrices
-This repository contains implementations of matrix multiplication in C++ and CUDA for various matrix sparsity patterns.
+This repository contains implementations of matrix multiplication in C++ for various matrix sparsity patterns. See more in the [report.pdf](./report.pdf).
 
 ## Performance Analysis
 The K in N sparse patter, in this case 4 in 16 and 2 in 16, was tested on a 5 layer MLP (with ReLu activation and bias addition fused with the matrix multiplication). Only the hidden layers of size 1024x1024 were sparsified, the output layer of size 10x1024 remained dense. The performance comparison of the sparsified networks, the dense network implemented in C++, the dense network implemented using the Android Neural Networks API and the dense network converted to TF Lite models can be see on the plots below. 
